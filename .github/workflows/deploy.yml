@@ -48,7 +48,7 @@ jobs:
           - service: pos-service
             changed: ${{ needs.changes.outputs.pos-service }}
             port: 3001
-            secrets: ""
+            secrets: "MONGODB_URI_POS=MONGODB_URI_POS:latest"
           - service: pos-sales-service
             changed: ${{ needs.changes.outputs.pos-sales-service }}
             port: 3002
