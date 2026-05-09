@@ -1,0 +1,167 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [dev]
+
+env:
+  PROJECT_ID: probable-effort-445713-t1
+  REGION: asia-southeast1
+  REGISTRY: asia-southeast1-docker.pkg.dev/probable-effort-445713-t1/smartstore
+
+jobs:
+  # ─── 1. Detect which apps changed ────────────────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      pos-web:             ${{ steps.f.outputs.pos-web }}
+      pos-service:         ${{ steps.f.outputs.pos-service }}
+      pos-catalog-service: ${{ steps.f.outputs.pos-catalog-service }}
+      pos-sales-service:   ${{ steps.f.outputs.pos-sales-service }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            pos-web:
+              - 'apps/pos-web/**'
+            pos-service:
+              - 'apps/pos-service/**'
+            pos-catalog-service:
+              - 'apps/pos-catalog-service/**'
+            pos-sales-service:
+              - 'apps/pos-sales-service/**'
+
+  # ─── 2. Build matrix from changed services ───────────────────────────────────
+  prepare:
+    needs: changes
+    runs-on: ubuntu-latest
+    outputs:
+      matrix:      ${{ steps.set.outputs.matrix }}
+      has_changes: ${{ steps.set.outputs.has_changes }}
+    steps:
+      - id: set
+        run: |
+          SERVICES=()
+          [[ "${{ needs.changes.outputs['pos-web'] }}"             == "true" ]] && SERVICES+=("pos-web")
+          [[ "${{ needs.changes.outputs['pos-service'] }}"         == "true" ]] && SERVICES+=("pos-service")
+          [[ "${{ needs.changes.outputs['pos-catalog-service'] }}" == "true" ]] && SERVICES+=("pos-catalog-service")
+          [[ "${{ needs.changes.outputs['pos-sales-service'] }}"   == "true" ]] && SERVICES+=("pos-sales-service")
+
+          JSON=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -sc .)
+          echo "matrix=${JSON}" >> $GITHUB_OUTPUT
+
+          if [[ ${#SERVICES[@]} -gt 0 ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ─── 3. Build & push to Artifact Registry ────────────────────────────────────
+  build:
+    needs: [changes, prepare]
+    if: needs.prepare.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA }}
+
+      - name: Build & push — ${{ matrix.service }}
+        run: |
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --substitutions _SERVICE=${{ matrix.service }},_TAG=${{ github.sha }} \
+            --project "$PROJECT_ID"
+
+  # ─── 4. Deploy to Dev (automatic) ────────────────────────────────────────────
+  deploy-dev:
+    needs: [changes, prepare, build]
+    if: needs.prepare.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA }}
+
+      - name: Deploy ${{ matrix.service }} → dev
+        run: |
+          SERVICE=${{ matrix.service }}
+          IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
+          ENV_VARS=$(bash scripts/cloud-run-env-dev.sh "$SERVICE")
+          SECRETS=$(bash scripts/cloud-run-secrets-dev.sh "$SERVICE")
+
+          gcloud run deploy "${SERVICE}-dev" \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "$ENV_VARS" \
+            ${SECRETS:+--set-secrets="$SECRETS"} \
+            --project "$PROJECT_ID"
+
+  # ─── 5. Promote to Prod (manual approval required) ───────────────────────────
+  promote-prod:
+    needs: [changes, prepare, deploy-dev]
+    if: needs.prepare.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    environment: production          # ← triggers manual approval gate in GitHub
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SA }}
+
+      - name: Promote changed services → prod (same image, no rebuild)
+        run: |
+          deploy() {
+            local SERVICE=$1
+            local IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
+            local ENV_VARS
+            ENV_VARS=$(bash scripts/cloud-run-env.sh "$SERVICE")
+            local SECRETS
+            SECRETS=$(bash scripts/cloud-run-secrets.sh "$SERVICE")
+
+            echo "▶ Deploying $SERVICE → prod (image: ${{ github.sha }})"
+            gcloud run deploy "$SERVICE" \
+              --image "$IMAGE" \
+              --region "$REGION" \
+              --platform managed \
+              --allow-unauthenticated \
+              --set-env-vars "$ENV_VARS" \
+              ${SECRETS:+--set-secrets="$SECRETS"} \
+              --project "$PROJECT_ID"
+          }
+
+          [[ "${{ needs.changes.outputs['pos-web'] }}"             == "true" ]] && deploy pos-web
+          [[ "${{ needs.changes.outputs['pos-service'] }}"         == "true" ]] && deploy pos-service
+          [[ "${{ needs.changes.outputs['pos-catalog-service'] }}" == "true" ]] && deploy pos-catalog-service
+          [[ "${{ needs.changes.outputs['pos-sales-service'] }}"   == "true" ]] && deploy pos-sales-service
+
+          echo "✓ Prod promotion complete"
