@@ -1,0 +1,67 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Git SHA to rollback to (full or short)'
+        required: true
+        type: string
+      services:
+        description: 'Services to rollback (comma-separated, or "all")'
+        required: true
+        default: 'all'
+        type: string
+
+env:
+  PROJECT_ID: probable-effort-445713-t1
+  REGION: asia-southeast1
+  REGISTRY: asia-southeast1-docker.pkg.dev/probable-effort-445713-t1/smartstore
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Rollback → prod
+        run: |
+          SHA="${{ inputs.sha }}"
+          INPUT="${{ inputs.services }}"
+
+          if [[ "$INPUT" == "all" ]]; then
+            SERVICES=(pos-web pos-service pos-catalog-service pos-sales-service)
+          else
+            IFS=',' read -ra SERVICES <<< "$INPUT"
+          fi
+
+          deploy() {
+            local SERVICE=$(echo "$1" | xargs)
+            local IMAGE="$REGISTRY/$SERVICE:$SHA"
+            local ENV_VARS
+            ENV_VARS=$(bash scripts/cloud-run-env.sh "$SERVICE")
+            local SECRETS
+            SECRETS=$(bash scripts/cloud-run-secrets.sh "$SERVICE")
+
+            echo "▶ Rolling back $SERVICE to $SHA..."
+            gcloud run deploy "$SERVICE" \
+              --image "$IMAGE" \
+              --region "$REGION" \
+              --platform managed \
+              --allow-unauthenticated \
+              --set-env-vars "$ENV_VARS" \
+              ${SECRETS:+--set-secrets="$SECRETS"} \
+              --project "$PROJECT_ID"
+            echo "✓ $SERVICE done"
+          }
+
+          for SERVICE in "${SERVICES[@]}"; do
+            deploy "$SERVICE"
+          done
