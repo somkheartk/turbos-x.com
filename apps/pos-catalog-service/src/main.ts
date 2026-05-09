@@ -7,7 +7,7 @@ async function bootstrap() {
   app.enableCors({ origin: '*' });
   app.setGlobalPrefix('api');
   await app.listen(port, '0.0.0.0');
-  console.log(`[pos-catalog-service] running on :${port}`);
+  console.log(`[catalog-service] running on :${port}`);
 }
 
 void bootstrap();
