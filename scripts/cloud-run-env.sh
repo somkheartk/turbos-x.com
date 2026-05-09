@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Usage: ./scripts/cloud-run-env.sh <service-name>
 # Outputs comma-separated KEY=VALUE for --set-env-vars
-# Sensitive values (MONGODB_URI, KAFKA_BROKERS) should be stored in
-# Secret Manager and referenced separately with --set-secrets.
+# NOTE: PORT is reserved by Cloud Run — do not include it here.
+# Sensitive values (MONGODB_URI, KAFKA_USERNAME, KAFKA_PASSWORD) are in Secret Manager.
 
 SERVICE="$1"
 
@@ -11,13 +11,13 @@ case "$SERVICE" in
     echo "API_BASE_URL=https://pos-service-<hash>-as.a.run.app/api,NODE_ENV=production"
     ;;
   pos-service)
-    echo "PORT=3001,NODE_ENV=production,CATALOG_SERVICE_URL=https://pos-catalog-service-<hash>-as.a.run.app/api,SALES_SERVICE_URL=https://pos-sales-service-<hash>-as.a.run.app/api"
+    echo "NODE_ENV=production,CATALOG_SERVICE_URL=https://pos-catalog-service-<hash>-as.a.run.app/api,SALES_SERVICE_URL=https://pos-sales-service-<hash>-as.a.run.app/api"
     ;;
   pos-sales-service)
-    echo "PORT=3002,NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
+    echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092,CATALOG_SERVICE_URL=https://pos-catalog-service-<hash>-as.a.run.app/api"
     ;;
   pos-catalog-service)
-    echo "PORT=3003,NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
+    echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
     ;;
   *)
     echo "NODE_ENV=production"
