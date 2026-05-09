@@ -14,10 +14,10 @@ case "$SERVICE" in
     echo "PORT=3001,NODE_ENV=production,CATALOG_SERVICE_URL=https://pos-catalog-service-<hash>-as.a.run.app/api,SALES_SERVICE_URL=https://pos-sales-service-<hash>-as.a.run.app/api"
     ;;
   pos-sales-service)
-    echo "PORT=3002,NODE_ENV=production"
+    echo "PORT=3002,NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
     ;;
   pos-catalog-service)
-    echo "PORT=3003,NODE_ENV=production"
+    echo "PORT=3003,NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
     ;;
   *)
     echo "NODE_ENV=production"

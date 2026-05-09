@@ -1,5 +1,18 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Kafka, Producer } from 'kafkajs';
+import { Kafka, Producer, SASLOptions } from 'kafkajs';
+
+function buildKafkaClient(clientId: string): Kafka {
+  const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:9092').split(',');
+  const username = process.env.KAFKA_USERNAME;
+  const password = process.env.KAFKA_PASSWORD;
+
+  const sasl: SASLOptions | undefined =
+    username && password
+      ? { mechanism: 'plain', username, password }
+      : undefined;
+
+  return new Kafka({ clientId, brokers, ssl: !!sasl, sasl });
+}
 
 @Injectable()
 export class KafkaProducer implements OnModuleInit, OnModuleDestroy {
@@ -7,12 +20,7 @@ export class KafkaProducer implements OnModuleInit, OnModuleDestroy {
   private readonly producer: Producer;
 
   constructor() {
-    const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:9092').split(',');
-    const kafka = new Kafka({
-      clientId: 'pos-service',
-      brokers,
-    });
-    this.producer = kafka.producer();
+    this.producer = buildKafkaClient('pos-sales-producer').producer();
   }
 
   async onModuleInit(): Promise<void> {

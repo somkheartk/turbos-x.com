@@ -1,6 +1,19 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Consumer, Kafka } from 'kafkajs';
+import { Consumer, Kafka, SASLOptions } from 'kafkajs';
 import { ProductsService } from './products.service';
+
+function buildKafkaClient(clientId: string): Kafka {
+  const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:9092').split(',');
+  const username = process.env.KAFKA_USERNAME;
+  const password = process.env.KAFKA_PASSWORD;
+
+  const sasl: SASLOptions | undefined =
+    username && password
+      ? { mechanism: 'plain', username, password }
+      : undefined;
+
+  return new Kafka({ clientId, brokers, ssl: !!sasl, sasl });
+}
 
 @Injectable()
 export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
@@ -8,9 +21,7 @@ export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly consumer: Consumer;
 
   constructor(private readonly productsService: ProductsService) {
-    const brokers = (process.env.KAFKA_BROKERS ?? 'localhost:9092').split(',');
-    const kafka = new Kafka({ clientId: 'catalog-service-consumer', brokers });
-    this.consumer = kafka.consumer({ groupId: 'catalog-service' });
+    this.consumer = buildKafkaClient('catalog-service-consumer').consumer({ groupId: 'catalog-service' });
   }
 
   async onModuleInit(): Promise<void> {
