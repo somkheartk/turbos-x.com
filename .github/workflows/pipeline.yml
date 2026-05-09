@@ -98,8 +98,9 @@ jobs:
           output: trivy-image-${{ matrix.service }}.sarif
 
       - name: Upload Trivy image results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
+        continue-on-error: true
         with:
           sarif_file: trivy-image-${{ matrix.service }}.sarif
           category: trivy-image-${{ matrix.service }}
