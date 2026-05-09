@@ -8,13 +8,13 @@ SERVICE="$1"
 
 case "$SERVICE" in
   pos-web)
-    echo "API_BASE_URL=https://pos-service-<hash>-as.a.run.app/api,NODE_ENV=production"
+    echo "API_BASE_URL=https://pos-service-g2q47ewoqa-as.a.run.app/api,NODE_ENV=production"
     ;;
   pos-service)
-    echo "NODE_ENV=production,CATALOG_SERVICE_URL=https://pos-catalog-service-<hash>-as.a.run.app/api,SALES_SERVICE_URL=https://pos-sales-service-<hash>-as.a.run.app/api"
+    echo "NODE_ENV=production,CATALOG_SERVICE_URL=https://pos-catalog-service-g2q47ewoqa-as.a.run.app/api,SALES_SERVICE_URL=https://pos-sales-service-g2q47ewoqa-as.a.run.app/api"
     ;;
   pos-sales-service)
-    echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092,CATALOG_SERVICE_URL=https://pos-catalog-service-<hash>-as.a.run.app/api"
+    echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092,CATALOG_SERVICE_URL=https://pos-catalog-service-g2q47ewoqa-as.a.run.app/api"
     ;;
   pos-catalog-service)
     echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
