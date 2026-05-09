@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^\\\\-.*\\\\.\\(json|yaml|yml|md|toml\\)$\")",
+      "Bash(mkdir -p /Users/somkheart/development/smartstore/turbos-x/.claude/commands && ls /Users/somkheart/development/smartstore/turbos-x/.claude/ 2>/dev/null || echo \"Directory created\")",
+      "Bash(xargs ls)",
+      "Bash(npm install *)",
+      "Bash(mv apps/api-gateway apps/bff)",
+      "Bash(mv apps/pos-service apps/transaction-service)",
+      "Bash(mv apps/pos-service-web apps/pos-web)",
+      "Bash(sed -i '' 's/\"@pos\\\\/storefront-api\"/\"@pos\\\\/pos-api\"/' /Users/somkheart/development/smartstore/turbos-x/apps/pos-api/package.json)",
+      "Bash(sed -i '' 's/\"@pos\\\\/storefront\"/\"@pos\\\\/pos-web\"/' /Users/somkheart/development/smartstore/turbos-x/apps/pos-web/package.json)",
+      "Bash(sed -i '' 's/\"@pos\\\\/sales-service\"/\"@pos\\\\/pos-sales-service\"/' /Users/somkheart/development/smartstore/turbos-x/apps/pos-sales-service/package.json)",
+      "Bash(sed -i '' 's/\"@pos\\\\/catalog-service\"/\"@pos\\\\/pos-catalog-service\"/' /Users/somkheart/development/smartstore/turbos-x/apps/pos-catalog-service/package.json)",
+      "Bash(sed -i '' 's/  pos-api:/  pos-service:/g' /Users/somkheart/development/smartstore/turbos-x/docker-compose.yml)",
+      "Bash(sed -i '' 's|context: ./apps/pos-api|context: ./apps/pos-service|g' /Users/somkheart/development/smartstore/turbos-x/docker-compose.yml)",
+      "Bash(sed -i '' 's/container_name: smartstore-pos-api/container_name: smartstore-pos-service/g' /Users/somkheart/development/smartstore/turbos-x/docker-compose.yml)",
+      "Bash(sed -i '' 's/depends_on: \\\\[pos-api\\\\]/depends_on: [pos-service]/g' /Users/somkheart/development/smartstore/turbos-x/docker-compose.yml)",
+      "Bash(sed -i '' 's|API_BASE_URL: http://pos-api:|API_BASE_URL: http://pos-service:|g' /Users/somkheart/development/smartstore/turbos-x/docker-compose.yml)",
+      "Bash(docker info *)",
+      "Bash(docker-compose ps *)",
+      "Bash(docker-compose up *)",
+      "Bash(docker-compose logs *)",
+      "Bash(docker-compose build *)",
+      "Bash(curl -s http://localhost:3003/api/catalog/health)",
+      "Bash(curl -s http://localhost:3002/api/pos/health)",
+      "Bash(curl -s http://localhost:3001/api/pos/products)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(chmod +x /Users/somkheart/development/smartstore/turbos-x/scripts/cloud-run-env.sh)",
+      "Bash(gcloud auth *)",
+      "Bash(gcloud config *)",
+      "Bash(gcloud projects *)",
+      "Bash(gcloud services *)"
+    ],
+    "additionalDirectories": [
+      "/Users/somkheart/development/smartstore/turbos-x/.claude",
+      "/Users/somkheart/development/smartstore/turbos-x"
+    ]
+  }
+}

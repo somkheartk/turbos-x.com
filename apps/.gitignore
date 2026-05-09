@@ -1,0 +1,6 @@
+# Local Copilot workspace customizations
+.github/agents/
+.github/instructions/
+.github/jobs/
+.github/prompts/
+.github/copilot-instructions.md

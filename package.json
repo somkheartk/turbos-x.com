@@ -1,0 +1,29 @@
+{
+  "name": "turbos-x",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@11.11.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev:web": "npm run dev --workspace @pos/pos-web",
+    "dev:service": "npm run start:dev --workspace @pos/pos-service",
+    "dev:sales": "npm run start:dev --workspace @pos/pos-sales-service",
+    "dev:catalog": "npm run start:dev --workspace @pos/pos-catalog-service",
+    "build:web": "npm run build --workspace @pos/pos-web",
+    "build:service": "npm run build --workspace @pos/pos-service",
+    "infra:up": "docker-compose up -d zookeeper kafka kafka-ui mongodb",
+    "infra:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.14"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
