@@ -10,6 +10,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   await app.listen(port, '0.0.0.0');
+  console.log(`POS Service running on :${port}`);
 }
 
 void bootstrap();
