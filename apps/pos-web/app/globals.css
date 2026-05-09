@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --app-bg: #edf4ff;
+  --panel: #f6faff;
+  --panel-strong: #ffffff;
+  --line: #d5e4fb;
+  --ink: #10233f;
+  --muted: #567091;
+  --accent: #2563eb;
+  --accent-soft: #e8f1ff;
+  --accent-deep: #173eaa;
+  --success-soft: #eaf8f2;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.20), transparent 24%),
+    radial-gradient(circle at 88% 10%, rgba(125, 174, 255, 0.22), transparent 18%),
+    linear-gradient(145deg, #dfeefe 0%, #edf5ff 34%, #f9fcff 68%, #eef5ff 100%);
+  color: var(--ink);
+}
+
+body {
+  min-height: 100vh;
+  font-feature-settings: 'ss01' on, 'cv02' on;
+  background-attachment: fixed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*::selection {
+  background: rgba(37, 99, 235, 0.18);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.hazard-stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(37, 99, 235, 0.10) 0,
+    rgba(37, 99, 235, 0.10) 12px,
+    rgba(16, 35, 63, 0.04) 12px,
+    rgba(16, 35, 63, 0.04) 24px
+  );
+}

@@ -1,0 +1,16 @@
+playwright-report/
+test-results/
+blob-report/
+.env
+.env.local
+.next/
+out/
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+*.tsbuildinfo
+.idea/
+.vscode/
