@@ -68,15 +68,13 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.prepare.outputs.matrix) }}
     permissions:
-      id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SA }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Build & push — ${{ matrix.service }}
         run: |
@@ -95,15 +93,13 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.prepare.outputs.matrix) }}
     permissions:
-      id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SA }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Deploy ${{ matrix.service }} → dev
         run: |
@@ -128,15 +124,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: production          # ← triggers manual approval gate in GitHub
     permissions:
-      id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SA }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Promote changed services → prod (same image, no rebuild)
         run: |
