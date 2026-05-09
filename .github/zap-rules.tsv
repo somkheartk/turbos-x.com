@@ -1,0 +1,10 @@
+# ZAP scan rules — WARN/IGNORE/FAIL per alert ID
+# Format: <rule-id>\t<WARN|IGNORE|FAIL>\t<description>
+# Full list: https://www.zaproxy.org/docs/alerts/
+
+10015	WARN	Incomplete or No Cache-control Header Set
+10016	WARN	Web Browser XSS Protection Not Enabled
+10017	WARN	Cross-Domain JavaScript Source File Inclusion
+10096	WARN	Timestamp Disclosure
+10098	WARN	Cross-Domain Misconfiguration
+90003	WARN	Sub Resource Integrity Attribute Missing

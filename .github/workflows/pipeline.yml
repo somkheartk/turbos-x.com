@@ -87,6 +87,23 @@ jobs:
             "apps/${{ matrix.service }}"
           docker push "$REGISTRY/${{ matrix.service }}:${{ github.sha }}"
 
+      - name: Trivy — image scan (block on CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-image-${{ matrix.service }}.sarif
+
+      - name: Upload Trivy image results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-image-${{ matrix.service }}.sarif
+          category: trivy-image-${{ matrix.service }}
+
   # ─── 4. Deploy to Dev (automatic) ────────────────────────────────────────────
   deploy-dev:
     needs: [changes, prepare, build]
@@ -120,3 +137,23 @@ jobs:
             --set-env-vars "$ENV_VARS" \
             ${SECRETS:+--set-secrets="$SECRETS"} \
             --project "$PROJECT_ID"
+
+  # ─── 5. OWASP ZAP — DAST against dev ────────────────────────────────────────
+  zap-dast:
+    needs: [prepare, deploy-dev]
+    if: needs.prepare.outputs.has_changes == 'true' && contains(needs.prepare.outputs.matrix, 'pos-web')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP ZAP — baseline scan (pos-web-dev)
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: https://pos-web-dev-${{ env.PROJECT_ID }}.asia-southeast1.run.app
+          rules_file_name: .github/zap-rules.tsv
+          issue_title: 'OWASP ZAP — Dev Scan'
+          fail_action: false   # warn only, don't block dev deploy
+          artifact_name: zap-report

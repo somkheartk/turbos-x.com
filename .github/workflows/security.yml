@@ -1,0 +1,142 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev, main]
+  schedule:
+    - cron: '0 2 * * 1'   # every Monday 02:00 UTC — rescan prod images
+
+permissions:
+  contents: read
+  security-events: write   # upload SARIF to GitHub Security tab
+
+env:
+  PROJECT_ID: probable-effort-445713-t1
+  REGION: asia-southeast1
+  REGISTRY: asia-southeast1-docker.pkg.dev/probable-effort-445713-t1/smartstore
+  SERVICES: pos-web pos-service pos-catalog-service pos-sales-service
+
+jobs:
+  # ─── 1. Secret scanning ──────────────────────────────────────────────────────
+  secrets:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── 2. Dependency audit ─────────────────────────────────────────────────────
+  deps:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high --json | tee /tmp/audit.json || true
+
+      - name: Fail on critical vulnerabilities
+        run: |
+          CRITICAL=$(cat /tmp/audit.json | jq '.metadata.vulnerabilities.critical // 0')
+          HIGH=$(cat /tmp/audit.json | jq '.metadata.vulnerabilities.high // 0')
+          echo "Critical: $CRITICAL | High: $HIGH"
+          if [[ "$CRITICAL" -gt 0 ]]; then
+            echo "::error::$CRITICAL critical vulnerabilities found — run 'npm audit fix'"
+            exit 1
+          fi
+          if [[ "$HIGH" -gt 5 ]]; then
+            echo "::warning::$HIGH high vulnerabilities found"
+          fi
+
+      - name: Trivy — filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-fs.sarif
+
+      - name: Upload Trivy FS results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem
+
+  # ─── 3. OWASP Dependency-Check (SCA) ────────────────────────────────────────
+  owasp-sca:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: smartstore
+          path: .
+          format: SARIF
+          args: >
+            --enableRetired
+            --failOnCVSS 9
+            --suppression .github/owasp-suppressions.xml
+
+      - name: Upload OWASP results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/dependency-check-report.sarif
+          category: owasp-dependency-check
+
+  # ─── 4. Scheduled rescan of prod images ──────────────────────────────────────
+  rescan-prod:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+
+      - name: Trivy — scan current prod images
+        run: |
+          for SERVICE in $SERVICES; do
+            IMAGE=$(gcloud run services describe "$SERVICE" \
+              --region "$REGION" \
+              --project "$PROJECT_ID" \
+              --format="value(spec.template.spec.containers[0].image)" 2>/dev/null)
+
+            if [[ -z "$IMAGE" ]]; then
+              echo "⚠ $SERVICE — not deployed, skipping"
+              continue
+            fi
+
+            echo "▶ Scanning $SERVICE ($IMAGE)..."
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              aquasec/trivy:latest image \
+              --severity CRITICAL,HIGH \
+              --ignore-unfixed \
+              --exit-code 0 \
+              "$IMAGE" || true
+
+            echo ""
+          done
