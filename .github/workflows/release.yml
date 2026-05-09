@@ -1,0 +1,81 @@
+name: Release to Production
+
+# Triggered only by semver tags: v1.0.0, v1.2.3, v2.0.0-rc.1
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+
+env:
+  PROJECT_ID: probable-effort-445713-t1
+  REGION: asia-southeast1
+  REGISTRY: asia-southeast1-docker.pkg.dev/probable-effort-445713-t1/smartstore
+  SERVICES: pos-web pos-service pos-catalog-service pos-sales-service
+
+jobs:
+  # ─── 1. Create GitHub Release with auto-generated notes ──────────────────────
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_url: ${{ steps.release.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true   # auto changelog from commits since last tag
+          make_latest: true
+
+  # ─── 2. Deploy all services → prod (requires manual approval) ────────────────
+  deploy-prod:
+    needs: create-release
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Deploy ${{ github.ref_name }} → prod
+        run: |
+          echo "Release: ${{ github.ref_name }}"
+          echo "Image SHA: ${{ github.sha }}"
+          echo ""
+
+          deploy() {
+            local SERVICE=$1
+            local IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
+            local ENV_VARS
+            ENV_VARS=$(bash scripts/cloud-run-env.sh "$SERVICE")
+            local SECRETS
+            SECRETS=$(bash scripts/cloud-run-secrets.sh "$SERVICE")
+
+            echo "▶ Deploying $SERVICE..."
+            gcloud run deploy "$SERVICE" \
+              --image "$IMAGE" \
+              --region "$REGION" \
+              --platform managed \
+              --allow-unauthenticated \
+              --set-env-vars "$ENV_VARS" \
+              --tag "${{ github.ref_name }}" \
+              ${SECRETS:+--set-secrets="$SECRETS"} \
+              --project "$PROJECT_ID"
+            echo "✓ $SERVICE"
+          }
+
+          for SERVICE in $SERVICES; do
+            deploy "$SERVICE"
+          done
+
+          echo ""
+          echo "✓ Release ${{ github.ref_name }} deployed to production"
+          echo "  Release notes: ${{ needs.create-release.outputs.release_url }}"
