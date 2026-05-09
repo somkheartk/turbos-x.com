@@ -51,6 +51,9 @@ jobs:
           echo "Image SHA: ${{ github.sha }}"
           echo ""
 
+          # Cloud Run tags allow only lowercase letters, numbers, and dashes
+          TRAFFIC_TAG=$(echo "${{ github.ref_name }}" | tr '.' '-' | tr '[:upper:]' '[:lower:]')
+
           deploy() {
             local SERVICE=$1
             local IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
@@ -66,7 +69,7 @@ jobs:
               --platform managed \
               --allow-unauthenticated \
               --set-env-vars "$ENV_VARS" \
-              --tag "${{ github.ref_name }}" \
+              --tag "$TRAFFIC_TAG" \
               ${SECRETS:+--set-secrets="$SECRETS"} \
               --project "$PROJECT_ID"
             echo "✓ $SERVICE"
