@@ -7,7 +7,7 @@ import { PosUsersModule } from './users/users.module';
   imports: [
     MongooseModule.forRootAsync({
       useFactory: () => ({
-        uri: process.env.MONGODB_URI ?? 'mongodb://localhost:27017/smartstore',
+        uri: process.env.MONGODB_URI_SALES ?? 'mongodb://localhost:27017/pos_sales',
       }),
     }),
     PosTransactionsModule,

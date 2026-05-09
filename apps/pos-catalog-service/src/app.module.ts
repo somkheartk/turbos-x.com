@@ -6,7 +6,7 @@ import { ProductsModule } from './products/products.module';
   imports: [
     MongooseModule.forRootAsync({
       useFactory: () => ({
-        uri: process.env.MONGODB_URI ?? 'mongodb://localhost:27017/smartstore',
+        uri: process.env.MONGODB_URI_CATALOG ?? 'mongodb://localhost:27017/pos_catalog',
       }),
     }),
     ProductsModule,
