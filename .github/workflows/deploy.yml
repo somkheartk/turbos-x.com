@@ -44,15 +44,19 @@ jobs:
           - service: pos-web
             changed: ${{ needs.changes.outputs.pos-web }}
             port: 8080
+            secrets: ""
           - service: pos-service
             changed: ${{ needs.changes.outputs.pos-service }}
             port: 3001
+            secrets: "MONGODB_URI=MONGODB_URI:latest"
           - service: pos-sales-service
             changed: ${{ needs.changes.outputs.pos-sales-service }}
             port: 3002
+            secrets: "MONGODB_URI=MONGODB_URI:latest,KAFKA_USERNAME=KAFKA_USERNAME:latest,KAFKA_PASSWORD=KAFKA_PASSWORD:latest"
           - service: pos-catalog-service
             changed: ${{ needs.changes.outputs.pos-catalog-service }}
             port: 3003
+            secrets: "MONGODB_URI=MONGODB_URI:latest,KAFKA_USERNAME=KAFKA_USERNAME:latest,KAFKA_PASSWORD=KAFKA_PASSWORD:latest"
 
     # ข้ามถ้า service นั้นไม่มีการเปลี่ยนแปลง
     if: |
@@ -92,6 +96,7 @@ jobs:
         if: matrix.changed == 'true'
         run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/smartstore/${{ matrix.service }}:${{ github.sha }}"
+          SECRETS="${{ matrix.secrets }}"
 
           gcloud run deploy ${{ matrix.service }} \
             --image="$IMAGE" \
@@ -100,7 +105,7 @@ jobs:
             --port=${{ matrix.port }} \
             --allow-unauthenticated \
             --set-env-vars="$(./scripts/cloud-run-env.sh ${{ matrix.service }})" \
-            --set-secrets="MONGODB_URI=MONGODB_URI:latest,KAFKA_USERNAME=KAFKA_USERNAME:latest,KAFKA_PASSWORD=KAFKA_PASSWORD:latest" \
+            ${SECRETS:+--set-secrets="$SECRETS"} \
             --quiet
 
       - name: Print service URL
