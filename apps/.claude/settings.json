@@ -30,7 +30,8 @@
       "Bash(rm -rf /Users/somkheart/development/smartstore/turbos-x/apps/pos-catalog-service/.git)",
       "Bash(rm -rf /Users/somkheart/development/smartstore/turbos-x/apps/pos-web/.git)",
       "Bash(git rm *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
