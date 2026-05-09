@@ -12,6 +12,7 @@ COPY . .
 RUN npm run build
 
 FROM node:20-alpine AS runner
+RUN apk upgrade --no-cache
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
