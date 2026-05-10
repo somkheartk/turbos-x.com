@@ -14,10 +14,10 @@ case "$SERVICE" in
     echo "API_BASE_URL=${POS_URL},NODE_ENV=development"
     ;;
   pos-service)
-    echo "NODE_ENV=development,CATALOG_SERVICE_URL=${CATALOG_URL},SALES_SERVICE_URL=${SALES_URL}"
+    echo "NODE_ENV=development,CORS_ORIGIN=*,CATALOG_SERVICE_URL=${CATALOG_URL},SALES_SERVICE_URL=${SALES_URL}"
     ;;
   pos-sales-service)
-    echo "NODE_ENV=development,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092,CATALOG_SERVICE_URL=${CATALOG_URL}"
+    echo "NODE_ENV=development,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
     ;;
   pos-catalog-service)
     echo "NODE_ENV=development,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"

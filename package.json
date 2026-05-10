@@ -17,8 +17,9 @@
     "dev:catalog": "npm run start:dev --workspace @pos/pos-catalog-service",
     "build:web": "npm run build --workspace @pos/pos-web",
     "build:service": "npm run build --workspace @pos/pos-service",
-    "infra:up": "docker-compose up -d zookeeper kafka kafka-ui mongodb",
-    "infra:down": "docker-compose down"
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose up -d --build"
   },
   "devDependencies": {
     "turbo": "^2.0.14"

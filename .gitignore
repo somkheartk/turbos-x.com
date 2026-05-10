@@ -27,3 +27,5 @@ pnpm-debug.log*
 *.env.production.local
 *.tsbuildinfo
 *.gz
+playwright-report
+test-results

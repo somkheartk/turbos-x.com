@@ -1,85 +1,25 @@
 services:
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: smartstore-zookeeper
-    restart: unless-stopped
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: smartstore-kafka
-    restart: unless-stopped
-    depends_on: [zookeeper]
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: smartstore-kafka-ui
-    restart: unless-stopped
-    depends_on: [kafka]
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: smartstore
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-
-  mongodb:
-    image: mongo:7
-    container_name: smartstore-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    environment:
-      MONGO_INITDB_DATABASE: smartstore
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   pos-sales-service:
     build:
       context: ./apps/pos-sales-service
       dockerfile: Dockerfile
     container_name: smartstore-pos-sales-service
     restart: unless-stopped
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
     ports:
       - "3002:3002"
     environment:
       PORT: 3002
-      MONGODB_URI_SALES: mongodb://mongodb:27017/smartstore
-      KAFKA_BROKERS: kafka:29092
+      MONGODB_URI_SALES: ${MONGODB_URI_SALES}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      KAFKA_USERNAME: ${KAFKA_USERNAME}
+      KAFKA_PASSWORD: ${KAFKA_PASSWORD}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/pos/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3002/api/pos/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   pos-catalog-service:
     build:
@@ -87,22 +27,20 @@ services:
       dockerfile: Dockerfile
     container_name: smartstore-pos-catalog-service
     restart: unless-stopped
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
     ports:
       - "3003:3003"
     environment:
       PORT: 3003
-      MONGODB_URI_CATALOG: mongodb://mongodb:27017/smartstore
-      KAFKA_BROKERS: kafka:29092
+      MONGODB_URI_CATALOG: ${MONGODB_URI_CATALOG}
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      KAFKA_USERNAME: ${KAFKA_USERNAME}
+      KAFKA_PASSWORD: ${KAFKA_PASSWORD}
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3003/api/catalog/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/api/catalog/health"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   pos-service:
     build:
@@ -119,14 +57,16 @@ services:
       - "3001:3001"
     environment:
       PORT: 3001
+      MONGODB_URI_POS: ${MONGODB_URI_POS}
       CORS_ORIGIN: "*"
       CATALOG_SERVICE_URL: http://pos-catalog-service:3003/api
       SALES_SERVICE_URL: http://pos-sales-service:3002/api
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/pos/dashboard"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/pos/dashboard"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   pos-web:
     build:
@@ -143,5 +83,3 @@ services:
       PORT: 3000
       API_BASE_URL: http://pos-service:3001/api
 
-volumes:
-  mongo_data:
