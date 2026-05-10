@@ -1,9 +1,12 @@
 name: Release to Production
 
-# Triggered only by semver tags: v1.0.0, v1.2.3, v2.0.0-rc.1
+# Triggered by stable tags only: v1.0.0, v1.2.3
+# RC tags (v1.0.0-rc.1) are handled by uat-release.yml
 on:
   push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+    tags:
+      - 'v*.*.*'
+      - '!v*-rc.*'
 
 env:
   PROJECT_ID: probable-effort-445713-t1
@@ -28,12 +31,44 @@ jobs:
         id: release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true   # auto changelog from commits since last tag
+          generate_release_notes: true
           make_latest: true
 
-  # ─── 2. Deploy all services → prod (requires manual approval) ────────────────
-  deploy-prod:
+  # ─── 2. Promote RC image → prod (no rebuild, same digest) ────────────────────
+  promote:
     needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        service: [pos-web, pos-service, pos-catalog-service, pos-sales-service]
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Verify RC image exists
+        run: |
+          IMAGE="$REGISTRY/${{ matrix.service }}:${{ github.sha }}"
+          if ! gcloud artifacts docker images describe "$IMAGE" --quiet 2>/dev/null; then
+            echo "::error::Image $IMAGE not found."
+            echo "::error::Tag ${{ github.ref_name }} must be placed on the same commit as the RC tag."
+            exit 1
+          fi
+          echo "✓ Image verified: $IMAGE"
+
+      - name: Promote — retag RC image as ${{ github.ref_name }}
+        run: |
+          gcloud artifacts docker tags add \
+            "$REGISTRY/${{ matrix.service }}:${{ github.sha }}" \
+            "$REGISTRY/${{ matrix.service }}:${{ github.ref_name }}"
+          echo "✓ ${{ matrix.service }}:${{ github.sha }} → :${{ github.ref_name }} (same digest)"
+
+  # ─── 3. Deploy to prod (requires approval) ───────────────────────────────────
+  deploy-prod:
+    needs: [create-release, promote]
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -47,19 +82,11 @@ jobs:
 
       - name: Deploy ${{ github.ref_name }} → prod
         run: |
-          echo "Release: ${{ github.ref_name }}"
-          echo "Image SHA: ${{ github.sha }}"
-          echo ""
-
-          # Cloud Run tags allow only lowercase letters, numbers, and dashes
           TRAFFIC_TAG=$(echo "${{ github.ref_name }}" | tr '.' '-' | tr '[:upper:]' '[:lower:]')
 
-          deploy() {
-            local SERVICE=$1
-            local IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
-            local ENV_VARS
+          for SERVICE in $SERVICES; do
+            IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
             ENV_VARS=$(bash scripts/cloud-run-env.sh "$SERVICE")
-            local SECRETS
             SECRETS=$(bash scripts/cloud-run-secrets.sh "$SERVICE")
 
             echo "▶ Deploying $SERVICE..."
@@ -73,17 +100,13 @@ jobs:
               ${SECRETS:+--set-secrets="$SECRETS"} \
               --project "$PROJECT_ID"
             echo "✓ $SERVICE"
-          }
-
-          for SERVICE in $SERVICES; do
-            deploy "$SERVICE"
           done
 
           echo ""
-          echo "✓ Release ${{ github.ref_name }} deployed to production"
+          echo "✓ ${{ github.ref_name }} deployed to production"
           echo "  Release notes: ${{ needs.create-release.outputs.release_url }}"
 
-  # ─── 3. Merge tag → main (after prod deploy confirmed) ───────────────────────
+  # ─── 4. Merge tag → main ─────────────────────────────────────────────────────
   merge-main:
     needs: deploy-prod
     runs-on: ubuntu-latest
@@ -105,8 +128,7 @@ jobs:
             git push origin main
             echo "✓ main fast-forwarded to ${{ github.ref_name }}"
           else
-            echo "::warning::Fast-forward failed — main has diverged from dev."
-            echo "::warning::Prod is deployed successfully. Merge main manually:"
+            echo "::warning::Fast-forward failed — merge main manually:"
             echo "::warning::  git checkout main && git merge ${{ github.ref_name }} && git push origin main"
             exit 1
           fi

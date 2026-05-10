@@ -1,9 +1,9 @@
 name: UAT Release
 
-# Triggered by tags: uat-v1.0.0, uat-v1.2.3, etc.
+# Triggered by RC tags: v1.0.0-rc.1, v1.2.0-rc.3, etc.
 on:
   push:
-    tags: ['uat-v[0-9]+.[0-9]+.[0-9]+*']
+    tags: ['v*-rc.*']
 
 env:
   PROJECT_ID: probable-effort-445713-t1
@@ -12,7 +12,7 @@ env:
   SERVICES: pos-web pos-service pos-catalog-service pos-sales-service
 
 jobs:
-  # ─── 1. Build all services + Trivy scan ──────────────────────────────────────
+  # ─── 1. Build all services + tag image + Trivy scan ──────────────────────────
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -36,9 +36,11 @@ jobs:
         run: |
           docker build \
             -t "$REGISTRY/${{ matrix.service }}:${{ github.sha }}" \
+            -t "$REGISTRY/${{ matrix.service }}:${{ github.ref_name }}" \
             -f "apps/${{ matrix.service }}/Dockerfile" \
             "apps/${{ matrix.service }}"
           docker push "$REGISTRY/${{ matrix.service }}:${{ github.sha }}"
+          docker push "$REGISTRY/${{ matrix.service }}:${{ github.ref_name }}"
 
       - name: Trivy — image scan (block on CRITICAL)
         uses: aquasecurity/trivy-action@master
