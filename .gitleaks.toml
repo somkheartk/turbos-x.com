@@ -1,6 +1,6 @@
 [allowlist]
-  description = "Global allowlist for false positives"
-
-  [[allowlist.paths]]
-    description = "Claude Code local settings — contains tool permission patterns, not real secrets"
-    paths = ['''apps/.claude/settings\.local\.json''', '''\.claude/settings\.local\.json''']
+  description = "Global allowlist — Claude local settings contain tool permission patterns, not real secrets"
+  paths = [
+    '''apps/\.claude/settings\.local\.json''',
+    '''\.claude/settings\.local\.json''',
+  ]
