@@ -1,5 +1,5 @@
 import { getPosUsers } from '../_lib/pos-api';
-import { UsersClient } from '../_components/users-client';
+import { UsersClient } from './_components/users-client';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,5 +1,5 @@
 import { getPosProducts } from '../_lib/pos-api';
-import { ProductsClient } from '../_components/products-client';
+import { ProductsClient } from './_components/products-client';
 
 export const dynamic = 'force-dynamic';
 

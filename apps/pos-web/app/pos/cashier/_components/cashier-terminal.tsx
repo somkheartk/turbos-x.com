@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { PosProduct, PosTransaction } from '../_lib/pos-api';
-import { posCheckout } from '../_lib/pos-api';
+import type { PosProduct, PosTransaction } from '../../_lib/pos-api';
+import { posCheckout } from '../../_lib/pos-api';
 import { ReceiptModal } from './receipt-modal';
 
 const CASHIER_NAME_KEY = 'smartstore-cashier-name';

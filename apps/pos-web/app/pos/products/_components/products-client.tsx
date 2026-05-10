@@ -2,40 +2,10 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PosProduct } from '../_lib/pos-api';
-import { createPosProduct } from '../_lib/pos-api';
-import { Modal } from './modal';
-
-const CATEGORY_THEME: Record<string, { bg: string; text: string; icon: string }> = {
-  'สกินแคร์':   { bg: 'from-rose-400 to-pink-500',     text: 'text-rose-50',   icon: '✨' },
-  'ครีมกันแดด': { bg: 'from-amber-400 to-orange-500',  text: 'text-amber-50',  icon: '☀️' },
-  'เซรั่ม':     { bg: 'from-violet-400 to-purple-500', text: 'text-violet-50', icon: '💧' },
-  'คลีนเซอร์':  { bg: 'from-sky-400 to-cyan-500',      text: 'text-sky-50',    icon: '🫧' },
-  'มอยส์เจอ':  { bg: 'from-teal-400 to-emerald-500',  text: 'text-teal-50',   icon: '🌿' },
-  'Serum':      { bg: 'from-violet-400 to-purple-500', text: 'text-violet-50', icon: '💧' },
-  'Sunscreen':  { bg: 'from-amber-400 to-orange-500',  text: 'text-amber-50',  icon: '☀️' },
-  'Cleanser':   { bg: 'from-sky-400 to-cyan-500',      text: 'text-sky-50',    icon: '🫧' },
-  'Mask':       { bg: 'from-indigo-400 to-blue-500',   text: 'text-indigo-50', icon: '🌙' },
-  'Booster':    { bg: 'from-fuchsia-400 to-pink-500',  text: 'text-fuchsia-50',icon: '⚡' },
-};
-
-const DEFAULT_THEME = { bg: 'from-slate-400 to-slate-500', text: 'text-slate-50', icon: '📦' };
-
-function getTheme(category: string, name: string) {
-  if (CATEGORY_THEME[category]) return CATEGORY_THEME[category];
-  for (const [key, theme] of Object.entries(CATEGORY_THEME)) {
-    if (name.toLowerCase().includes(key.toLowerCase()) || category.toLowerCase().includes(key.toLowerCase())) {
-      return theme;
-    }
-  }
-  return DEFAULT_THEME;
-}
-
-const STATUS_STYLE = {
-  Active:   { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  Draft:    { dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 border-amber-200'       },
-  Archived: { dot: 'bg-slate-300',   badge: 'bg-slate-50 text-slate-500 border-slate-200'       },
-};
+import type { PosProduct } from '../../_lib/pos-api';
+import { createPosProduct } from '../../_lib/pos-api';
+import { Modal } from '../../../_components/ui/modal';
+import { ProductCard } from './product-card';
 
 type Props = { readonly products: PosProduct[]; readonly categories: string[] };
 const EMPTY_FORM = { name: '', sku: '', category: '', price: '', stockOnHand: '' };
@@ -74,7 +44,6 @@ export function ProductsClient({ products, categories }: Props) {
 
   return (
     <>
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">สินค้า</h1>
@@ -93,7 +62,6 @@ export function ProductsClient({ products, categories }: Props) {
         </button>
       </div>
 
-      {/* Category filter */}
       <div className="mt-5 flex gap-2 flex-wrap">
         {['ทั้งหมด', ...categories].map(cat => (
           <button
@@ -110,62 +78,10 @@ export function ProductsClient({ products, categories }: Props) {
         ))}
       </div>
 
-      {/* Card grid */}
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map(product => {
-          const theme = getTheme(product.category, product.name);
-          const style = STATUS_STYLE[product.status];
-          const isLowStock = product.stockOnHand > 0 && product.stockOnHand <= 10;
-          const isOutOfStock = product.stockOnHand === 0;
-          let stockColor = 'text-slate-700';
-          if (isOutOfStock) stockColor = 'text-red-500';
-          else if (isLowStock) stockColor = 'text-amber-500';
-
-          return (
-            <article key={product.sku} className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
-              {/* Image placeholder */}
-              <div className={`relative flex h-36 items-center justify-center bg-gradient-to-br ${theme.bg}`}>
-                <span className="text-5xl drop-shadow-sm">{theme.icon}</span>
-                {/* Status badge */}
-                <span className={`absolute right-3 top-3 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${style.badge}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-                  {product.status}
-                </span>
-                {/* Stock warning */}
-                {isOutOfStock && (
-                  <span className="absolute left-3 top-3 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                    หมด
-                  </span>
-                )}
-                {isLowStock && (
-                  <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-white">
-                    ใกล้หมด
-                  </span>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="p-4">
-                <p className="truncate text-sm font-semibold text-slate-900">{product.name}</p>
-                <p className="mt-0.5 text-[11px] text-slate-400">{product.sku} · {product.category}</p>
-
-                <div className="mt-3 flex items-end justify-between">
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">ราคา</p>
-                    <p className="mt-0.5 text-lg font-bold text-[#1f56c5]">{product.priceLabel}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">คงเหลือ</p>
-                    <p className={`mt-0.5 text-lg font-bold ${stockColor}`}>
-                      {product.stockOnHand}
-                      <span className="ml-0.5 text-xs font-normal text-slate-400">ชิ้น</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        {filtered.map(product => (
+          <ProductCard key={product.sku} product={product} />
+        ))}
       </div>
 
       {filtered.length === 0 && (
@@ -175,7 +91,6 @@ export function ProductsClient({ products, categories }: Props) {
         </div>
       )}
 
-      {/* Add Product Modal */}
       {showModal && (
         <Modal title="เพิ่มสินค้าใหม่" onClose={closeModal}>
           <form onSubmit={handleAdd} className="space-y-4">

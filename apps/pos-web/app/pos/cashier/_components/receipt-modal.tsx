@@ -1,6 +1,6 @@
 'use client';
 
-import type { PosTransaction } from '../_lib/pos-api';
+import type { PosTransaction } from '../../_lib/pos-api';
 
 const PAYMENT_LABEL: Record<string, string> = { Cash: 'เงินสด', QR: 'QR Code', Card: 'บัตรเครดิต' };
 

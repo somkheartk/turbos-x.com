@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { updatePosUser } from '../_lib/pos-api';
+import { updatePosUser } from '../../_lib/pos-api';
 
 type Props = {
   readonly userId: string;

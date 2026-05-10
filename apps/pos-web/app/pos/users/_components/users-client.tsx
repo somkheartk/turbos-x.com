@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PosUser } from '../_lib/pos-api';
-import { createPosUser } from '../_lib/pos-api';
-import { Modal } from './modal';
+import type { PosUser } from '../../_lib/pos-api';
+import { createPosUser } from '../../_lib/pos-api';
+import { Modal } from '../../../_components/ui/modal';
 import { UserToggleButton } from './user-toggle-button';
 
 const roleStyle: Record<string, { dot: string; text: string }> = {
