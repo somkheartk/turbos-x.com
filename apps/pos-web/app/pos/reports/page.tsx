@@ -1,4 +1,4 @@
-import { getAdminReports } from '../../_lib/admin-api';
+import { getAdminReports } from '../../admin/_lib/admin-api';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,9 +82,13 @@ export default async function PosReportsPage() {
             <h3 className="mt-1 text-base font-semibold text-[#10233f]">สินค้าขายดี 5 อันดับ</h3>
           </div>
           <div className="divide-y divide-[#f0f6ff]">
-            {data.topProducts.map(p => (
+            {data.topProducts.map(p => {
+              let rankCls = 'bg-[#f0f6ff] text-[#597391]';
+              if (p.rank === 1) rankCls = 'bg-[#2563eb] text-white';
+              else if (p.rank === 2) rankCls = 'bg-[#dbeafe] text-[#1d4ed8]';
+              return (
               <div key={p.sku} className="flex items-center gap-4 px-6 py-4 hover:bg-[#f8fbff] transition-colors">
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${p.rank === 1 ? 'bg-[#2563eb] text-white' : p.rank === 2 ? 'bg-[#dbeafe] text-[#1d4ed8]' : 'bg-[#f0f6ff] text-[#597391]'}`}>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankCls}`}>
                   {p.rank}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -98,7 +102,8 @@ export default async function PosReportsPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
