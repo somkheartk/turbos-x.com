@@ -11,10 +11,10 @@ case "$SERVICE" in
     echo "API_BASE_URL=https://pos-api.turbos-x.com/api,NODE_ENV=production"
     ;;
   pos-service)
-    echo "NODE_ENV=production,CATALOG_SERVICE_URL=https://pos-catalog.turbos-x.com/api,SALES_SERVICE_URL=https://pos-sales.turbos-x.com/api"
+    echo "NODE_ENV=production,CORS_ORIGIN=*,CATALOG_SERVICE_URL=https://pos-catalog.turbos-x.com/api,SALES_SERVICE_URL=https://pos-sales.turbos-x.com/api"
     ;;
   pos-sales-service)
-    echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092,CATALOG_SERVICE_URL=https://pos-catalog.turbos-x.com/api"
+    echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
     ;;
   pos-catalog-service)
     echo "NODE_ENV=production,KAFKA_BROKERS=pkc-ldvr1.asia-southeast1.gcp.confluent.cloud:9092"
