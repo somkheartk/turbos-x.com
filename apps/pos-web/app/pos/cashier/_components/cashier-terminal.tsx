@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { PosProduct, PosTransaction } from '../../_lib/pos-api';
 import { posCheckout } from '../../_lib/pos-api';
-import { ReceiptModal } from './receipt-modal';
+import { ReceiptModal } from '../../_components/receipt-modal';
 
 const CASHIER_NAME_KEY = 'smartstore-cashier-name';
 
