@@ -86,7 +86,7 @@ export function CashierTerminal({ products, categories }: Props) {
     setEditingName(false);
   }
 
-  async function checkout() {
+  async function handleCheckout() {
     if (!cart.length) return;
     setLoading(true); setError('');
     try {
@@ -297,7 +297,7 @@ export function CashierTerminal({ products, categories }: Props) {
             {error && <p className="text-xs font-medium text-red-500">{error}</p>}
 
             <button
-              onClick={checkout}
+              onClick={handleCheckout}
               disabled={!cart.length || loading || (payment === 'Cash' && !canPay)}
               className="w-full rounded-2xl bg-[#2563eb] py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(37,99,235,0.30)] transition-all hover:bg-[#1d4ed8] disabled:opacity-30 disabled:shadow-none"
             >

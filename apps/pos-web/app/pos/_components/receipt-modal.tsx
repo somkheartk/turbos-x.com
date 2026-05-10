@@ -1,6 +1,6 @@
 'use client';
 
-import type { Transaction } from '../../_lib';
+import type { Transaction } from '../_lib';
 
 const PAYMENT_LABEL: Record<string, string> = { Cash: 'เงินสด', QR: 'QR Code', Card: 'บัตรเครดิต' };
 

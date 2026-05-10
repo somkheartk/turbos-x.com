@@ -68,5 +68,5 @@ export function updateUser(id: string, payload: UpdateUserPayload) {
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 export function getReports() {
-  return request<ReportsData>('/admin/reports');
+  return request<ReportsData>('/pos/reports');
 }
