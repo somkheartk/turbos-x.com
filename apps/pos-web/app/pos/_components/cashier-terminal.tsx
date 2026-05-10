@@ -98,8 +98,10 @@ export function CashierTerminal({ products, categories }: Props) {
       });
       setReceipt(res.transaction);
       setCart([]);
-    } catch {
-      setError('Checkout ล้มเหลว กรุณาลองใหม่');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[checkout]', msg);
+      setError(msg);
     } finally {
       setLoading(false);
     }
