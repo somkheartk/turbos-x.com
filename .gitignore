@@ -1,3 +1,7 @@
+# Claude Code local settings (contains tool permission patterns)
+.claude/settings.local.json
+apps/.claude/settings.local.json
+
 node_modules
 .next
 dist
