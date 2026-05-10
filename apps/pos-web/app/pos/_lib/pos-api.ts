@@ -130,3 +130,16 @@ export function createPosProduct(data: { name: string; sku: string; category: st
     body: JSON.stringify(data),
   });
 }
+
+export type ReportsData = {
+  period: string;
+  summary: Array<{ label: string; value: string; change: string; up: boolean }>;
+  dailySales: Array<{ day: string; revenue: number; transactions: number }>;
+  topProducts: Array<{ rank: number; name: string; sku: string; sold: number; revenue: number; revenueLabel: string }>;
+  byShift: Array<{ shift: string; revenue: number; revenueLabel: string; transactions: number; percent: number }>;
+  byCashier: Array<{ name: string; transactions: number; revenue: number; revenueLabel: string; avgBasket: string }>;
+};
+
+export function getReports() {
+  return requestJson<ReportsData>('/admin/reports');
+}

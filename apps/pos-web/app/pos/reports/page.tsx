@@ -1,4 +1,4 @@
-import { getAdminReports } from '../../admin/_lib/admin-api';
+import { getReports } from '../_lib/pos-api';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,7 +7,7 @@ function fmt(n: number) {
 }
 
 export default async function PosReportsPage() {
-  const data = await getAdminReports();
+  const data = await getReports();
   const maxDaily = Math.max(...data.dailySales.map(d => d.revenue), 1);
 
   return (

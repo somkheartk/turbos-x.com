@@ -6,66 +6,75 @@ import type { PosProduct } from '../_lib/pos-api';
 import { createPosProduct } from '../_lib/pos-api';
 import { Modal } from './modal';
 
-const statusDot: Record<string, string> = {
-  Active:   'bg-emerald-500',
-  Draft:    'bg-amber-400',
-  Archived: 'bg-slate-300',
+const CATEGORY_THEME: Record<string, { bg: string; text: string; icon: string }> = {
+  'สกินแคร์':   { bg: 'from-rose-400 to-pink-500',     text: 'text-rose-50',   icon: '✨' },
+  'ครีมกันแดด': { bg: 'from-amber-400 to-orange-500',  text: 'text-amber-50',  icon: '☀️' },
+  'เซรั่ม':     { bg: 'from-violet-400 to-purple-500', text: 'text-violet-50', icon: '💧' },
+  'คลีนเซอร์':  { bg: 'from-sky-400 to-cyan-500',      text: 'text-sky-50',    icon: '🫧' },
+  'มอยส์เจอ':  { bg: 'from-teal-400 to-emerald-500',  text: 'text-teal-50',   icon: '🌿' },
+  'Serum':      { bg: 'from-violet-400 to-purple-500', text: 'text-violet-50', icon: '💧' },
+  'Sunscreen':  { bg: 'from-amber-400 to-orange-500',  text: 'text-amber-50',  icon: '☀️' },
+  'Cleanser':   { bg: 'from-sky-400 to-cyan-500',      text: 'text-sky-50',    icon: '🫧' },
+  'Mask':       { bg: 'from-indigo-400 to-blue-500',   text: 'text-indigo-50', icon: '🌙' },
+  'Booster':    { bg: 'from-fuchsia-400 to-pink-500',  text: 'text-fuchsia-50',icon: '⚡' },
 };
-const statusText: Record<string, string> = {
-  Active:   'text-emerald-600',
-  Draft:    'text-amber-600',
-  Archived: 'text-slate-400',
+
+const DEFAULT_THEME = { bg: 'from-slate-400 to-slate-500', text: 'text-slate-50', icon: '📦' };
+
+function getTheme(category: string, name: string) {
+  if (CATEGORY_THEME[category]) return CATEGORY_THEME[category];
+  for (const [key, theme] of Object.entries(CATEGORY_THEME)) {
+    if (name.toLowerCase().includes(key.toLowerCase()) || category.toLowerCase().includes(key.toLowerCase())) {
+      return theme;
+    }
+  }
+  return DEFAULT_THEME;
+}
+
+const STATUS_STYLE = {
+  Active:   { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  Draft:    { dot: 'bg-amber-400',   badge: 'bg-amber-50 text-amber-700 border-amber-200'       },
+  Archived: { dot: 'bg-slate-300',   badge: 'bg-slate-50 text-slate-500 border-slate-200'       },
 };
 
 type Props = { readonly products: PosProduct[]; readonly categories: string[] };
-
 const EMPTY_FORM = { name: '', sku: '', category: '', price: '', stockOnHand: '' };
 
 export function ProductsClient({ products, categories }: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const [activeCategory, setActiveCategory] = useState('ทั้งหมด');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  function toggleExpand(sku: string) {
-    setExpanded(prev => (prev === sku ? null : sku));
-  }
+  const filtered = activeCategory === 'ทั้งหมด'
+    ? products
+    : products.filter(p => p.category === activeCategory);
 
-  function closeModal() {
-    setShowModal(false);
-    setForm(EMPTY_FORM);
-    setError('');
-  }
+  function closeModal() { setShowModal(false); setForm(EMPTY_FORM); setError(''); }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name || !form.sku || !form.category || !form.price || !form.stockOnHand) {
-      setError('กรุณากรอกข้อมูลให้ครบ');
-      return;
+      setError('กรุณากรอกข้อมูลให้ครบ'); return;
     }
     const price = Number(form.price);
     const stockOnHand = Number(form.stockOnHand);
-    if (price <= 0 || stockOnHand < 0) {
-      setError('ราคาต้องมากกว่า 0 และสต็อกต้องไม่ติดลบ');
-      return;
-    }
+    if (price <= 0 || stockOnHand < 0) { setError('ราคาต้องมากกว่า 0 และสต็อกต้องไม่ติดลบ'); return; }
     setSaving(true);
     try {
       await createPosProduct({ name: form.name, sku: form.sku, category: form.category, price, stockOnHand });
       closeModal();
       startTransition(() => router.refresh());
-    } catch {
-      setError('เพิ่มสินค้าไม่สำเร็จ กรุณาลองใหม่');
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError('เพิ่มสินค้าไม่สำเร็จ กรุณาลองใหม่'); }
+    finally { setSaving(false); }
   }
 
   return (
     <>
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">สินค้า</h1>
@@ -84,87 +93,95 @@ export function ProductsClient({ products, categories }: Props) {
         </button>
       </div>
 
+      {/* Category filter */}
       <div className="mt-5 flex gap-2 flex-wrap">
-        {['ทั้งหมด', ...categories].map((cat, i) => (
-          <span
+        {['ทั้งหมด', ...categories].map(cat => (
+          <button
             key={cat}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium ${
-              i === 0 ? 'bg-[#2563eb] text-white' : 'border border-slate-200 bg-white text-slate-500'
+            onClick={() => setActiveCategory(cat)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              activeCategory === cat
+                ? 'bg-[#2563eb] text-white shadow-sm'
+                : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
             }`}
           >
             {cat}
-          </span>
+          </button>
         ))}
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-slate-100 bg-white">
-        <div className="grid grid-cols-[2fr_1fr_1fr_80px_80px] border-b border-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          <span>สินค้า</span>
-          <span>Category</span>
-          <span className="text-right">ราคา</span>
-          <span className="text-right">คงเหลือ</span>
-          <span className="text-right">Status</span>
-        </div>
+      {/* Card grid */}
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filtered.map(product => {
+          const theme = getTheme(product.category, product.name);
+          const style = STATUS_STYLE[product.status];
+          const isLowStock = product.stockOnHand > 0 && product.stockOnHand <= 10;
+          const isOutOfStock = product.stockOnHand === 0;
+          let stockColor = 'text-slate-700';
+          if (isOutOfStock) stockColor = 'text-red-500';
+          else if (isLowStock) stockColor = 'text-amber-500';
 
-        <div className="divide-y divide-slate-50">
-          {products.map(product => (
-            <div key={product.sku}>
-              <button
-                onClick={() => toggleExpand(product.sku)}
-                className="grid w-full grid-cols-[2fr_1fr_1fr_80px_80px] items-center px-5 py-3.5 text-left hover:bg-slate-50/60 transition-colors"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{product.name}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">{product.sku}</p>
-                </div>
-                <p className="text-sm text-slate-500">{product.category}</p>
-                <p className="text-right text-sm font-semibold text-slate-900">{product.priceLabel}</p>
-                <p className={`text-right text-sm font-medium ${product.stockOnHand <= 10 ? 'text-amber-600' : 'text-slate-600'}`}>
-                  {product.stockOnHand}
-                </p>
-                <div className="flex justify-end">
-                  <span className={`flex items-center gap-1.5 text-xs font-medium ${statusText[product.status]}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${statusDot[product.status]}`} />
-                    {product.status}
+          return (
+            <article key={product.sku} className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
+              {/* Image placeholder */}
+              <div className={`relative flex h-36 items-center justify-center bg-gradient-to-br ${theme.bg}`}>
+                <span className="text-5xl drop-shadow-sm">{theme.icon}</span>
+                {/* Status badge */}
+                <span className={`absolute right-3 top-3 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${style.badge}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                  {product.status}
+                </span>
+                {/* Stock warning */}
+                {isOutOfStock && (
+                  <span className="absolute left-3 top-3 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    หมด
                   </span>
-                </div>
-              </button>
+                )}
+                {isLowStock && (
+                  <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-white">
+                    ใกล้หมด
+                  </span>
+                )}
+              </div>
 
-              {expanded === product.sku && (
-                <div className="grid grid-cols-4 gap-4 border-t border-slate-50 bg-[#f7fbff] px-5 py-4">
+              {/* Info */}
+              <div className="p-4">
+                <p className="truncate text-sm font-semibold text-slate-900">{product.name}</p>
+                <p className="mt-0.5 text-[11px] text-slate-400">{product.sku} · {product.category}</p>
+
+                <div className="mt-3 flex items-end justify-between">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">SKU</p>
-                    <p className="mt-1 text-sm font-medium text-slate-800">{product.sku}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">ราคา</p>
+                    <p className="mt-0.5 text-lg font-bold text-[#1f56c5]">{product.priceLabel}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">หมวดหมู่</p>
-                    <p className="mt-1 text-sm font-medium text-slate-800">{product.category}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">สต็อกคงเหลือ</p>
-                    <p className={`mt-1 text-sm font-semibold ${product.stockOnHand <= 10 ? 'text-amber-600' : 'text-slate-800'}`}>
-                      {product.stockOnHand} ชิ้น{product.stockOnHand <= 10 ? ' ⚠ ใกล้หมด' : ''}
+                  <div className="text-right">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">คงเหลือ</p>
+                    <p className={`mt-0.5 text-lg font-bold ${stockColor}`}>
+                      {product.stockOnHand}
+                      <span className="ml-0.5 text-xs font-normal text-slate-400">ชิ้น</span>
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">ราคา</p>
-                    <p className="mt-1 text-sm font-semibold text-[#1f56c5]">{product.priceLabel}</p>
-                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
-      {isPending && <p className="mt-3 text-xs text-slate-400">กำลังอัปเดต...</p>}
+      {filtered.length === 0 && (
+        <div className="mt-12 flex flex-col items-center gap-2 text-slate-400">
+          <span className="text-4xl">📦</span>
+          <p className="text-sm">ไม่มีสินค้าในหมวดนี้</p>
+        </div>
+      )}
 
+      {/* Add Product Modal */}
       {showModal && (
         <Modal title="เพิ่มสินค้าใหม่" onClose={closeModal}>
           <form onSubmit={handleAdd} className="space-y-4">
-            <Field label="ชื่อสินค้า" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="เช่น กาแฟดำ" />
-            <Field label="SKU" value={form.sku} onChange={v => setForm(f => ({ ...f, sku: v }))} placeholder="เช่น COFFEE-001" />
-            <Field label="หมวดหมู่" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="เช่น เครื่องดื่ม" />
+            <Field label="ชื่อสินค้า" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} placeholder="เช่น Hydra Serum 30ml" />
+            <Field label="SKU" value={form.sku} onChange={v => setForm(f => ({ ...f, sku: v }))} placeholder="เช่น SKU-001" />
+            <Field label="หมวดหมู่" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} placeholder="เช่น Serum" />
             <div className="grid grid-cols-2 gap-3">
               <Field label="ราคา (บาท)" type="number" value={form.price} onChange={v => setForm(f => ({ ...f, price: v }))} placeholder="0" />
               <Field label="สต็อก (ชิ้น)" type="number" value={form.stockOnHand} onChange={v => setForm(f => ({ ...f, stockOnHand: v }))} placeholder="0" />
