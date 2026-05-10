@@ -1,5 +1,8 @@
+// Server: read env directly. Browser: go through the Next.js proxy route (/api/pos/...)
 const API_BASE_URL =
-  process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:3001/api';
+  globalThis.window === undefined
+    ? (process.env.API_BASE_URL ?? 'http://127.0.0.1:3001/api')
+    : '/api';
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
