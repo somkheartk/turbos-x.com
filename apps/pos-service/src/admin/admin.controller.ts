@@ -40,6 +40,11 @@ export class AdminController {
     return this.adminService.getCatalog();
   }
 
+  @Get('reports')
+  getReports() {
+    return this.adminService.getReports();
+  }
+
   @Patch('purchase-orders/:po/approve')
   approvePurchaseOrder(@Param('po') purchaseOrderId: string) {
     return this.adminService.approvePurchaseOrder(purchaseOrderId);

@@ -134,3 +134,50 @@ export class CatalogResponseDto {
   categories!: CatalogCategoryDto[];
   products!: CatalogProductDto[];
 }
+
+export class ReportsSummaryCardDto {
+  label!: string;
+  value!: string;
+  change!: string;
+  up!: boolean;
+}
+
+export class DailySalesDto {
+  day!: string;
+  revenue!: number;
+  transactions!: number;
+}
+
+export class TopProductDto {
+  rank!: number;
+  name!: string;
+  sku!: string;
+  sold!: number;
+  revenue!: number;
+  revenueLabel!: string;
+}
+
+export class ShiftRevenueDto {
+  shift!: string;
+  revenue!: number;
+  revenueLabel!: string;
+  transactions!: number;
+  percent!: number;
+}
+
+export class CashierRevenueDto {
+  name!: string;
+  transactions!: number;
+  revenue!: number;
+  revenueLabel!: string;
+  avgBasket!: string;
+}
+
+export class ReportsResponseDto {
+  period!: string;
+  summary!: ReportsSummaryCardDto[];
+  dailySales!: DailySalesDto[];
+  topProducts!: TopProductDto[];
+  byShift!: ShiftRevenueDto[];
+  byCashier!: CashierRevenueDto[];
+}

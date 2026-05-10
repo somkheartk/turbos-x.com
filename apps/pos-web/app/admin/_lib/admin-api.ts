@@ -89,6 +89,43 @@ export type OrdersData = {
   }>;
 };
 
+export type ReportsData = {
+  period: string;
+  summary: Array<{
+    label: string;
+    value: string;
+    change: string;
+    up: boolean;
+  }>;
+  dailySales: Array<{
+    day: string;
+    revenue: number;
+    transactions: number;
+  }>;
+  topProducts: Array<{
+    rank: number;
+    name: string;
+    sku: string;
+    sold: number;
+    revenue: number;
+    revenueLabel: string;
+  }>;
+  byShift: Array<{
+    shift: string;
+    revenue: number;
+    revenueLabel: string;
+    transactions: number;
+    percent: number;
+  }>;
+  byCashier: Array<{
+    name: string;
+    transactions: number;
+    revenue: number;
+    revenueLabel: string;
+    avgBasket: string;
+  }>;
+};
+
 export type CatalogData = {
   summary: Array<{
     label: string;
@@ -169,4 +206,8 @@ export function approvePurchaseOrder(po: string) {
   return requestJson(`/admin/purchase-orders/${po}/approve`, {
     method: 'PATCH'
   });
+}
+
+export function getAdminReports() {
+  return requestJson<ReportsData>('/admin/reports');
 }

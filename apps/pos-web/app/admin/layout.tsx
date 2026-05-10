@@ -14,7 +14,8 @@ type ActiveAdminRoute =
   | '/admin/purchase-orders'
   | '/admin/orders'
   | '/admin/catalog'
-  | '/admin/members';
+  | '/admin/members'
+  | '/admin/reports';
 
 type RouteMeta = {
   eyebrow: string;
@@ -63,6 +64,10 @@ const sidebarSections: SidebarSection[] = [
   {
     title: 'สมาชิก',
     items: [{ label: 'จัดการสมาชิก', href: '/admin/members', badge: 'MBR' }]
+  },
+  {
+    title: 'รายงาน',
+    items: [{ label: 'รายงานยอดขาย', href: '/admin/reports', badge: 'RPT' }]
   }
 ];
 
@@ -115,6 +120,13 @@ const routeMeta: Record<ActiveAdminRoute, RouteMeta> = {
     title: 'Member control desk',
     detail: 'จัดการสมาชิก บทบาท กะทำงาน และสถานะการเข้าถึงระบบของพนักงานทั้งหมดจากจุดเดียว',
     status: 'Directory synced'
+  },
+  '/admin/reports': {
+    eyebrow: 'Analytics lane',
+    laneLabel: 'Sales analytics',
+    title: 'Sales report',
+    detail: 'ดูยอดขายรายวัน สินค้าขายดี ประสิทธิภาพแต่ละกะและพนักงาน รวมถึง trend เปรียบเทียบช่วงก่อนหน้า',
+    status: 'Data refreshed'
   }
 };
 
@@ -125,7 +137,8 @@ const routeOrder = new Set<ActiveAdminRoute>([
   '/admin/purchase-orders',
   '/admin/orders',
   '/admin/catalog',
-  '/admin/members'
+  '/admin/members',
+  '/admin/reports'
 ]);
 
 function isActiveRoute(pathname: string): pathname is ActiveAdminRoute {
