@@ -87,7 +87,9 @@ jobs:
             "apps/${{ matrix.service }}"
           docker push "$REGISTRY/${{ matrix.service }}:${{ github.sha }}"
 
+      # Security scan — UAT only (quality gate before prod)
       - name: Trivy — image scan (block on CRITICAL)
+        if: github.ref == 'refs/heads/uat'
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
@@ -97,8 +99,8 @@ jobs:
           format: table
 
       - name: Trivy — image scan (SARIF upload)
+        if: github.ref == 'refs/heads/uat'
         uses: aquasecurity/trivy-action@master
-        if: always()
         with:
           image-ref: ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
           severity: CRITICAL,HIGH
@@ -108,14 +110,14 @@ jobs:
           output: trivy-image-${{ matrix.service }}.sarif
 
       - name: Upload Trivy image results
+        if: github.ref == 'refs/heads/uat'
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
         continue-on-error: true
         with:
           sarif_file: trivy-image-${{ matrix.service }}.sarif
           category: trivy-image-${{ matrix.service }}
 
-  # ─── 4. Deploy to Dev (automatic on dev branch) ──────────────────────────────
+  # ─── 4. Deploy to Dev ────────────────────────────────────────────────────────
   deploy-dev:
     needs: [prepare, build]
     if: needs.prepare.outputs.has_changes == 'true' && github.ref == 'refs/heads/dev'
@@ -149,7 +151,7 @@ jobs:
             ${SECRETS:+--set-secrets="$SECRETS"} \
             --project "$PROJECT_ID"
 
-  # ─── 5. Deploy to UAT (automatic on uat branch) ──────────────────────────────
+  # ─── 5. Deploy to UAT ────────────────────────────────────────────────────────
   deploy-uat:
     needs: [prepare, build]
     if: needs.prepare.outputs.has_changes == 'true' && github.ref == 'refs/heads/uat'
@@ -183,42 +185,7 @@ jobs:
             ${SECRETS:+--set-secrets="$SECRETS"} \
             --project "$PROJECT_ID"
 
-  # ─── 6. OWASP ZAP — DAST against dev ────────────────────────────────────────
-  zap-dast-dev:
-    needs: [prepare, deploy-dev]
-    if: needs.prepare.outputs.has_changes == 'true' && github.ref == 'refs/heads/dev' && contains(needs.prepare.outputs.matrix, 'pos-web')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-      issues: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Get pos-web-dev URL
-        id: url
-        run: |
-          URL=$(gcloud run services describe pos-web-dev \
-            --region ${{ env.REGION }} \
-            --project ${{ env.PROJECT_ID }} \
-            --format='value(status.url)' 2>/dev/null)
-          echo "target=${URL}" >> $GITHUB_OUTPUT
-
-      - name: OWASP ZAP — baseline scan (pos-web-dev)
-        if: steps.url.outputs.target != ''
-        uses: zaproxy/action-baseline@v0.14.0
-        with:
-          target: ${{ steps.url.outputs.target }}
-          rules_file_name: .github/zap-rules.tsv
-          issue_title: 'OWASP ZAP — Dev Scan'
-          fail_action: false
-          artifact_name: zap-report-dev-${{ github.run_id }}
-
-  # ─── 7. OWASP ZAP — DAST against uat ────────────────────────────────────────
+  # ─── 6. OWASP ZAP — DAST (UAT only) ─────────────────────────────────────────
   zap-dast-uat:
     needs: [prepare, deploy-uat]
     if: needs.prepare.outputs.has_changes == 'true' && github.ref == 'refs/heads/uat' && contains(needs.prepare.outputs.matrix, 'pos-web')

@@ -5,13 +5,13 @@
 
 SERVICE="$1"
 
-SALES_URL="https://pos-sales-service-uat-g2q47ewoqa-as.a.run.app/api"
-CATALOG_URL="https://pos-catalog-service-uat-g2q47ewoqa-as.a.run.app/api"
-POS_URL="https://pos-service-uat-g2q47ewoqa-as.a.run.app/api"
+SALES_URL="https://pos-sales.uat.turbos-x.com/api"
+CATALOG_URL="https://pos-catalog.uat.turbos-x.com/api"
+POS_URL="https://pos-api.uat.turbos-x.com/api"
 
 case "$SERVICE" in
   pos-web)
-    echo "API_BASE_URL=${POS_URL},NODE_ENV=uat"
+    echo "API_BASE_URL=${POS_URL},NEXT_PUBLIC_API_BASE_URL=${POS_URL},NODE_ENV=uat"
     ;;
   pos-service)
     echo "NODE_ENV=uat,CORS_ORIGIN=*,CATALOG_SERVICE_URL=${CATALOG_URL},SALES_SERVICE_URL=${SALES_URL}"
