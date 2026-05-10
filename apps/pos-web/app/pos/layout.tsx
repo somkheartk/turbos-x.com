@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { SESSION_KEY, ACTIVE_ROLE_KEY } from '../_lib/session';
 
-type PosRoute = '/pos' | '/pos/cashier' | '/pos/orders' | '/pos/products' | '/pos/users';
+type PosRoute = '/pos' | '/pos/cashier' | '/pos/orders' | '/pos/products' | '/pos/users' | '/pos/reports' | '/pos/settings';
 
 const SIDEBAR_KEY = 'smartstore-pos-sidebar';
 
@@ -53,6 +53,22 @@ function IconUsers() {
     </svg>
   );
 }
+function IconReports() {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 16l4-4 4 4 4-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconSettings() {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 function IconLogout() {
   return (
     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
@@ -82,6 +98,8 @@ const NAV: { href: PosRoute; label: string; sublabel: string; Icon: () => JSX.El
   { href: '/pos/orders',   label: 'Orders',    sublabel: 'ออเดอร์',   Icon: IconOrders    },
   { href: '/pos/products', label: 'Products',  sublabel: 'สินค้า',    Icon: IconProducts  },
   { href: '/pos/users',    label: 'Users',     sublabel: 'พนักงาน',   Icon: IconUsers     },
+  { href: '/pos/reports',  label: 'Reports',   sublabel: 'รายงาน',    Icon: IconReports   },
+  { href: '/pos/settings', label: 'Settings',  sublabel: 'ตั้งค่า',   Icon: IconSettings  },
 ];
 
 function handleLogout() {
