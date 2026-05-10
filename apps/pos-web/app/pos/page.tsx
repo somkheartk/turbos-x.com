@@ -7,9 +7,38 @@ function fmtTHB(n: number) {
   return '฿' + n.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+function rankBadge(i: number) {
+  if (i === 0) return 'bg-[#2563eb] text-white';
+  if (i === 1) return 'bg-slate-700 text-white';
+  if (i === 2) return 'bg-slate-400 text-white';
+  return 'bg-slate-100 text-slate-500';
+}
+
+function payMethodBadge(method: string) {
+  if (method === 'Cash') return 'bg-emerald-50 text-emerald-700';
+  if (method === 'QR')   return 'bg-violet-50 text-violet-700';
+  return 'bg-amber-50 text-amber-700';
+}
+
+function stockBadge(qty: number) {
+  if (qty === 0) return 'bg-red-100 text-red-700';
+  if (qty < 5)   return 'bg-orange-100 text-orange-700';
+  return 'bg-amber-100 text-amber-700';
+}
+
 export default async function PosDashboardPage() {
+  const FALLBACK_DASHBOARD = {
+    kpis: [
+      { label: 'ยอดขายวันนี้', value: '฿0', detail: '—' },
+      { label: 'Transactions', value: '0' },
+      { label: 'Avg basket', value: '฿0' },
+    ],
+    topCashiers: [],
+    onlineCounters: 0,
+  };
+
   const [dashboard, ordersResult, productsResult] = await Promise.all([
-    getDashboard(),
+    getDashboard().catch(() => FALLBACK_DASHBOARD),
     getOrders().catch(() => null),
     getProducts().catch(() => null),
   ]);
@@ -186,11 +215,7 @@ export default async function PosDashboardPage() {
             <div className="divide-y divide-slate-50">
               {recentTx.map((tx) => (
                 <div key={tx.transactionId} className="flex items-center gap-4 px-6 py-3.5">
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
-                    tx.paymentMethod === 'Cash' ? 'bg-emerald-50 text-emerald-700' :
-                    tx.paymentMethod === 'QR'   ? 'bg-violet-50 text-violet-700'  :
-                                                  'bg-amber-50 text-amber-700'
-                  }`}>
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${payMethodBadge(tx.paymentMethod)}`}>
                     {tx.paymentMethod === 'Cash' ? '฿' : tx.paymentMethod}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -286,12 +311,7 @@ export default async function PosDashboardPage() {
             <div className="divide-y divide-slate-50">
               {topProducts.map((p, i) => (
                 <div key={p.name} className="flex items-center gap-4 px-6 py-3.5">
-                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    i === 0 ? 'bg-[#2563eb] text-white' :
-                    i === 1 ? 'bg-slate-700 text-white' :
-                    i === 2 ? 'bg-slate-400 text-white' :
-                              'bg-slate-100 text-slate-500'
-                  }`}>
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankBadge(i)}`}>
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -336,11 +356,7 @@ export default async function PosDashboardPage() {
                     <p className="truncate text-sm font-medium text-slate-800">{p.name}</p>
                     <p className="text-xs text-slate-400">{p.sku} · {p.category}</p>
                   </div>
-                  <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    p.stockOnHand === 0 ? 'bg-red-100 text-red-700' :
-                    p.stockOnHand < 5  ? 'bg-orange-100 text-orange-700' :
-                                         'bg-amber-100 text-amber-700'
-                  }`}>
+                  <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold ${stockBadge(p.stockOnHand)}`}>
                     {p.stockOnHand === 0 ? 'หมด' : `${p.stockOnHand} ชิ้น`}
                   </span>
                 </div>
@@ -363,12 +379,7 @@ export default async function PosDashboardPage() {
           <div className="divide-y divide-slate-50 sm:grid sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
             {dashboard.topCashiers.map((c, i) => (
               <div key={c.name} className="flex items-center gap-3 px-6 py-4">
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                  i === 0 ? 'bg-[#2563eb] text-white' :
-                  i === 1 ? 'bg-slate-700 text-white' :
-                  i === 2 ? 'bg-slate-400 text-white' :
-                            'bg-slate-100 text-slate-500'
-                }`}>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${rankBadge(i)}`}>
                   {c.rank}
                 </span>
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">

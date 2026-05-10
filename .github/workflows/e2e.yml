@@ -1,0 +1,82 @@
+name: E2E Tests
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target URL (default: dev Cloud Run)"
+        required: false
+
+env:
+  # Cloud Run dev URL — pos-web service
+  DEV_URL: https://pos-web-dev-g2q47ewoqa-as.a.run.app
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    # Only run when pipeline succeeded (or manual trigger)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --workspace @pos/e2e
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+        working-directory: apps/e2e
+
+      - name: Run E2E tests
+        working-directory: apps/e2e
+        env:
+          BASE_URL: ${{ inputs.base_url || env.DEV_URL }}
+          CI: true
+        run: npx playwright test
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: apps/e2e/playwright-report/
+          retention-days: 14
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.run_number }}
+          path: apps/e2e/screenshots/
+          retention-days: 14
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ inputs.base_url || env.DEV_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f apps/e2e/playwright-report/results.json ]; then
+            PASSED=$(cat apps/e2e/playwright-report/results.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stats',{}).get('expected',0))")
+            FAILED=$(cat apps/e2e/playwright-report/results.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stats',{}).get('unexpected',0))")
+            echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 Download full HTML report from **Artifacts** above" >> $GITHUB_STEP_SUMMARY

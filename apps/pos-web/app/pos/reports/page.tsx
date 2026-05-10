@@ -2,12 +2,32 @@ import { getReports } from '../_lib';
 
 export const dynamic = 'force-dynamic';
 
+type ReportsData = Awaited<ReturnType<typeof getReports>>;
+
+const FALLBACK_REPORTS: ReportsData = {
+  period: '—',
+  summary: [
+    { label: 'ยอดขายรวม', value: '฿0', change: '0%', up: true },
+    { label: 'รายการทั้งหมด', value: '0', change: '0', up: true },
+    { label: 'ค่าเฉลี่ยต่อบิล', value: '฿0', change: '0%', up: true },
+    { label: 'สินค้าที่ขาย', value: '0', change: '0', up: true },
+  ],
+  dailySales: [],
+  topProducts: [],
+  byShift: [
+    { shift: 'Morning', revenue: 0, revenueLabel: '฿0', transactions: 0, percent: 0 },
+    { shift: 'Evening', revenue: 0, revenueLabel: '฿0', transactions: 0, percent: 0 },
+    { shift: 'Night', revenue: 0, revenueLabel: '฿0', transactions: 0, percent: 0 },
+  ],
+  byCashier: [],
+};
+
 function fmt(n: number) {
   return n.toLocaleString('th-TH');
 }
 
 export default async function PosReportsPage() {
-  const data = await getReports();
+  const data = await getReports().catch(() => FALLBACK_REPORTS);
   const maxDaily = Math.max(...data.dailySales.map(d => d.revenue), 1);
 
   return (
