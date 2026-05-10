@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const BACKEND = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001/api';
 
