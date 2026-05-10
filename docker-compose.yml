@@ -52,23 +52,11 @@ services:
       - mongo_data:/data/db
     environment:
       MONGO_INITDB_DATABASE: smartstore
-
-  pos-service:
-    build:
-      context: ./apps/pos-service
-      dockerfile: Dockerfile
-    container_name: smartstore-pos-service
-    restart: unless-stopped
-    depends_on: [mongodb, kafka, pos-sales-service, pos-catalog-service]
-    ports:
-      - "3001:3001"
-    environment:
-      PORT: 3001
-      MONGODB_URI: mongodb://mongodb:27017/smartstore
-      KAFKA_BROKERS: kafka:29092
-      CORS_ORIGIN: "*"
-      CATALOG_SERVICE_URL: http://pos-catalog-service:3003/api
-      SALES_SERVICE_URL: http://pos-sales-service:3002/api
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pos-sales-service:
     build:
@@ -76,13 +64,22 @@ services:
       dockerfile: Dockerfile
     container_name: smartstore-pos-sales-service
     restart: unless-stopped
-    depends_on: [mongodb, kafka]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     ports:
       - "3002:3002"
     environment:
       PORT: 3002
-      MONGODB_URI: mongodb://mongodb:27017/smartstore
+      MONGODB_URI_SALES: mongodb://mongodb:27017/smartstore
       KAFKA_BROKERS: kafka:29092
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/pos/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   pos-catalog-service:
     build:
@@ -90,13 +87,46 @@ services:
       dockerfile: Dockerfile
     container_name: smartstore-pos-catalog-service
     restart: unless-stopped
-    depends_on: [mongodb, kafka]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     ports:
       - "3003:3003"
     environment:
       PORT: 3003
-      MONGODB_URI: mongodb://mongodb:27017/smartstore
+      MONGODB_URI_CATALOG: mongodb://mongodb:27017/smartstore
       KAFKA_BROKERS: kafka:29092
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/api/catalog/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pos-service:
+    build:
+      context: ./apps/pos-service
+      dockerfile: Dockerfile
+    container_name: smartstore-pos-service
+    restart: unless-stopped
+    depends_on:
+      pos-sales-service:
+        condition: service_healthy
+      pos-catalog-service:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      CORS_ORIGIN: "*"
+      CATALOG_SERVICE_URL: http://pos-catalog-service:3003/api
+      SALES_SERVICE_URL: http://pos-sales-service:3002/api
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/pos/dashboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   pos-web:
     build:
@@ -104,13 +134,14 @@ services:
       dockerfile: Dockerfile
     container_name: smartstore-pos-web
     restart: unless-stopped
-    depends_on: [pos-service]
+    depends_on:
+      pos-service:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
       PORT: 3000
       API_BASE_URL: http://pos-service:3001/api
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:3001/api
 
 volumes:
   mongo_data:
