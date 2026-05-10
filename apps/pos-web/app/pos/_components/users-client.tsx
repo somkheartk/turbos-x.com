@@ -78,7 +78,8 @@ export function UsersClient({ users }: Props) {
         </button>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-100 bg-white">
+      <div className="mt-6 overflow-x-auto">
+      <div className="min-w-[600px] overflow-hidden rounded-xl border border-slate-100 bg-white">
         <div className="grid grid-cols-[1fr_auto_auto_auto_auto] border-b border-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
           <span>พนักงาน</span>
           <span className="px-6">Role</span>
@@ -143,6 +144,7 @@ export function UsersClient({ users }: Props) {
             );
           })}
         </div>
+      </div>
       </div>
 
       {isPending && <p className="mt-3 text-xs text-slate-400">กำลังอัปเดต...</p>}
