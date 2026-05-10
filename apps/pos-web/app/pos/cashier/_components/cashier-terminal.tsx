@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { PosProduct, PosTransaction } from '../../_lib/pos-api';
-import { posCheckout } from '../../_lib/pos-api';
+import type { Product, Transaction } from '../../_lib';
+import { checkout } from '../../_lib';
 import { ReceiptModal } from '../../_components/receipt-modal';
 
 const CASHIER_NAME_KEY = 'smartstore-cashier-name';
 
-type CartItem = PosProduct & { qty: number };
+type CartItem = Product & { qty: number };
 type PaymentMethod = 'Cash' | 'QR' | 'Card';
 
 function thb(value: number) {
@@ -39,14 +39,14 @@ function getTheme(category: string) {
   return CATEGORY_THEME[category] ?? CATEGORY_THEME['default'];
 }
 
-type Props = { readonly products: PosProduct[]; readonly categories: string[] };
+type Props = { readonly products: Product[]; readonly categories: string[] };
 
 export function CashierTerminal({ products, categories }: Props) {
   const [cart, setCart]               = useState<CartItem[]>([]);
   const [category, setCategory]       = useState('ทั้งหมด');
   const [payment, setPayment]         = useState<PaymentMethod>('Cash');
   const [cash, setCash]               = useState('');
-  const [receipt, setReceipt]         = useState<PosTransaction | null>(null);
+  const [receipt, setReceipt]         = useState<Transaction | null>(null);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState('');
   const [cashierName, setCashierName] = useState('');
@@ -64,7 +64,7 @@ export function CashierTerminal({ products, categories }: Props) {
   const change    = payment === 'Cash' && cash ? Math.max(0, Number(cash) - subtotal) : 0;
   const canPay    = payment !== 'Cash' || (Number(cash) >= subtotal && subtotal > 0);
 
-  function add(product: PosProduct) {
+  function add(product: Product) {
     setCart(prev => {
       const hit = prev.find(i => i.sku === product.sku);
       return hit
@@ -90,7 +90,7 @@ export function CashierTerminal({ products, categories }: Props) {
     if (!cart.length) return;
     setLoading(true); setError('');
     try {
-      const res = await posCheckout({
+      const res = await checkout({
         items: cart.map(i => ({ productSku: i.sku, productName: i.name, qty: i.qty, unitPrice: i.price })),
         paymentMethod: payment,
         cashReceived: payment === 'Cash' ? Number(cash) : undefined,

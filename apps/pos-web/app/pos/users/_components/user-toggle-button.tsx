@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { updatePosUser } from '../../_lib/pos-api';
+import { updateUser } from '../../_lib';
 
 type Props = {
   readonly userId: string;
@@ -16,7 +16,7 @@ export function UserToggleButton({ userId, currentStatus }: Props) {
   async function handleToggle() {
     setLoading(true);
     try {
-      await updatePosUser(userId, {
+      await updateUser(userId, {
         status: currentStatus === 'Active' ? 'Inactive' : 'Active',
       });
       router.refresh();

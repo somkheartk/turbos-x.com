@@ -1,9 +1,9 @@
-import { getPosUsers } from '../_lib/pos-api';
+import { getUsers } from '../_lib';
 import { UsersClient } from './_components/users-client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PosUsersPage() {
-  const data = await getPosUsers();
+  const data = await getUsers();
   return <UsersClient users={data.users} />;
 }

@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PosUser } from '../../_lib/pos-api';
-import { createPosUser } from '../../_lib/pos-api';
+import type { User } from '../../_lib';
+import { createUser } from '../../_lib';
 import { Modal } from '../../../_components/ui/modal';
 import { UserToggleButton } from './user-toggle-button';
 
@@ -19,9 +19,9 @@ const avatarColor = [
   'bg-violet-100 text-violet-700',
 ];
 
-type Props = { readonly users: PosUser[] };
+type Props = { readonly users: User[] };
 
-const EMPTY_FORM = { name: '', role: 'cashier' as PosUser['role'], shift: 'Morning', pin: '' };
+const EMPTY_FORM = { name: '', role: 'cashier' as User['role'], shift: 'Morning', pin: '' };
 
 export function UsersClient({ users }: Props) {
   const router = useRouter();
@@ -50,7 +50,7 @@ export function UsersClient({ users }: Props) {
     if (!/^\d{4}$/.test(form.pin)) { setError('PIN ต้องเป็นตัวเลข 4 หลัก'); return; }
     setSaving(true);
     try {
-      await createPosUser({ name: form.name, role: form.role, pin: form.pin, shift: form.shift });
+      await createUser({ name: form.name, role: form.role, pin: form.pin, shift: form.shift });
       closeModal();
       startTransition(() => router.refresh());
     } catch {
@@ -168,7 +168,7 @@ export function UsersClient({ users }: Props) {
                 <span className="mb-1.5 block text-xs font-medium text-slate-500">บทบาท</span>
                 <select
                   value={form.role}
-                  onChange={e => setForm(f => ({ ...f, role: e.target.value as PosUser['role'] }))}
+                  onChange={e => setForm(f => ({ ...f, role: e.target.value as User['role'] }))}
                   className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#2563eb]"
                 >
                   <option value="cashier">Cashier</option>

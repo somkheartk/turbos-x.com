@@ -1,12 +1,12 @@
 'use client';
 
-import type { PosTransaction } from '../../_lib/pos-api';
+import type { Transaction } from '../../_lib';
 
 const PAYMENT_LABEL: Record<string, string> = { Cash: 'เงินสด', QR: 'QR Code', Card: 'บัตรเครดิต' };
 
-type Props = { tx: PosTransaction; onClose: () => void };
+type Props = { tx: Transaction; onClose: () => void };
 
-function buildPrintHtml(tx: PosTransaction): string {
+function buildPrintHtml(tx: Transaction): string {
   const rows = tx.items.map(item => `
     <div class="item-name">${item.productName}</div>
     <div class="row"><span>${item.qty} &times; ${item.unitPriceLabel}</span><span>${item.lineTotalLabel}</span></div>

@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PosProduct } from '../../_lib/pos-api';
-import { createPosProduct } from '../../_lib/pos-api';
+import type { Product } from '../../_lib';
+import { createProduct } from '../../_lib';
 import { Modal } from '../../../_components/ui/modal';
 import { ProductCard } from './product-card';
 
-type Props = { readonly products: PosProduct[]; readonly categories: string[] };
+type Props = { readonly products: Product[]; readonly categories: string[] };
 const EMPTY_FORM = { name: '', sku: '', category: '', price: '', stockOnHand: '' };
 
 export function ProductsClient({ products, categories }: Props) {
@@ -35,7 +35,7 @@ export function ProductsClient({ products, categories }: Props) {
     if (price <= 0 || stockOnHand < 0) { setError('ราคาต้องมากกว่า 0 และสต็อกต้องไม่ติดลบ'); return; }
     setSaving(true);
     try {
-      await createPosProduct({ name: form.name, sku: form.sku, category: form.category, price, stockOnHand });
+      await createProduct({ name: form.name, sku: form.sku, category: form.category, price, stockOnHand });
       closeModal();
       startTransition(() => router.refresh());
     } catch { setError('เพิ่มสินค้าไม่สำเร็จ กรุณาลองใหม่'); }

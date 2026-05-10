@@ -1,4 +1,4 @@
-import { getReports } from '../_lib/pos-api';
+import { getReports } from '../_lib';
 
 export const dynamic = 'force-dynamic';
 

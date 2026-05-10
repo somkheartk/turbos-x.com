@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { PosOrdersData, PosTransaction } from '../../_lib/pos-api';
+import type { OrdersData, Transaction } from '../../_lib';
 import { ReceiptModal } from '../../_components/receipt-modal';
 
 const paymentLabel: Record<string, string> = { Cash: 'เงินสด', QR: 'QR', Card: 'บัตร' };
@@ -9,11 +9,11 @@ const paymentIcon:  Record<string, string> = { Cash: '💵', QR: '📱', Card: '
 
 type Filter = 'All' | 'Completed' | 'Voided';
 
-type Props = { readonly data: PosOrdersData };
+type Props = { readonly data: OrdersData };
 
 export function OrdersClient({ data }: Props) {
   const [filter, setFilter]     = useState<Filter>('All');
-  const [selected, setSelected] = useState<PosTransaction | null>(null);
+  const [selected, setSelected] = useState<Transaction | null>(null);
 
   const visible = filter === 'All'
     ? data.transactions
@@ -86,7 +86,7 @@ export function OrdersClient({ data }: Props) {
   );
 }
 
-function OrderRow({ tx, onViewReceipt }: { readonly tx: PosTransaction; readonly onViewReceipt: () => void }) {
+function OrderRow({ tx, onViewReceipt }: { readonly tx: Transaction; readonly onViewReceipt: () => void }) {
   const isCompleted = tx.status === 'Completed';
   return (
     <div className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] items-center px-6 py-4 transition-colors hover:bg-slate-50/60">

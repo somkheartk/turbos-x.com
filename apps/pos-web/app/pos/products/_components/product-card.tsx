@@ -1,4 +1,4 @@
-import type { PosProduct } from '../../_lib/pos-api';
+import type { Product } from '../../_lib';
 
 const CATEGORY_THEME: Record<string, { bg: string; icon: string }> = {
   'สกินแคร์':   { bg: 'from-rose-400 to-pink-500',     icon: '✨' },
@@ -31,7 +31,7 @@ function resolveTheme(category: string, name: string) {
   return DEFAULT_THEME;
 }
 
-type Props = { readonly product: PosProduct };
+type Props = { readonly product: Product };
 
 export function ProductCard({ product }: Props) {
   const theme = resolveTheme(product.category, product.name);

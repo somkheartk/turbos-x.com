@@ -1,4 +1,4 @@
-import { getPosNewPlan, getPosOrders, getPosProducts } from './_lib/pos-api';
+import { getDashboard, getOrders, getProducts } from './_lib';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -9,9 +9,9 @@ function fmtTHB(n: number) {
 
 export default async function PosDashboardPage() {
   const [dashboard, ordersResult, productsResult] = await Promise.all([
-    getPosNewPlan(),
-    getPosOrders().catch(() => null),
-    getPosProducts().catch(() => null),
+    getDashboard(),
+    getOrders().catch(() => null),
+    getProducts().catch(() => null),
   ]);
 
   const transactions = ordersResult?.transactions ?? [];
