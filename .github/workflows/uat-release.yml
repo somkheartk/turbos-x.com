@@ -1,0 +1,136 @@
+name: UAT Release
+
+# Triggered by tags: uat-v1.0.0, uat-v1.2.3, etc.
+on:
+  push:
+    tags: ['uat-v[0-9]+.[0-9]+.[0-9]+*']
+
+env:
+  PROJECT_ID: probable-effort-445713-t1
+  REGION: asia-southeast1
+  REGISTRY: asia-southeast1-docker.pkg.dev/probable-effort-445713-t1/smartstore
+  SERVICES: pos-web pos-service pos-catalog-service pos-sales-service
+
+jobs:
+  # ─── 1. Build all services + Trivy scan ──────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [pos-web, pos-service, pos-catalog-service, pos-sales-service]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+
+      - name: Build & push — ${{ matrix.service }}
+        run: |
+          docker build \
+            -t "$REGISTRY/${{ matrix.service }}:${{ github.sha }}" \
+            -f "apps/${{ matrix.service }}/Dockerfile" \
+            "apps/${{ matrix.service }}"
+          docker push "$REGISTRY/${{ matrix.service }}:${{ github.sha }}"
+
+      - name: Trivy — image scan (block on CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+          format: table
+
+      - name: Trivy — image scan (SARIF upload)
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-image-${{ matrix.service }}.sarif
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: trivy-image-${{ matrix.service }}.sarif
+          category: trivy-image-${{ matrix.service }}
+
+  # ─── 2. Deploy to UAT (requires approval) ────────────────────────────────────
+  deploy-uat:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: uat
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Deploy ${{ github.ref_name }} → UAT
+        run: |
+          for SERVICE in $SERVICES; do
+            IMAGE="$REGISTRY/$SERVICE:${{ github.sha }}"
+            ENV_VARS=$(bash scripts/cloud-run-env-uat.sh "$SERVICE")
+            SECRETS=$(bash scripts/cloud-run-secrets-uat.sh "$SERVICE")
+
+            echo "▶ Deploying ${SERVICE}-uat..."
+            gcloud run deploy "${SERVICE}-uat" \
+              --image "$IMAGE" \
+              --region "$REGION" \
+              --platform managed \
+              --allow-unauthenticated \
+              --set-env-vars "$ENV_VARS" \
+              ${SECRETS:+--set-secrets="$SECRETS"} \
+              --project "$PROJECT_ID"
+            echo "✓ ${SERVICE}-uat"
+          done
+
+  # ─── 3. OWASP ZAP — DAST against UAT ────────────────────────────────────────
+  zap-dast:
+    needs: deploy-uat
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Get pos-web-uat URL
+        id: url
+        run: |
+          URL=$(gcloud run services describe pos-web-uat \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
+            --format='value(status.url)' 2>/dev/null)
+          echo "target=${URL}" >> $GITHUB_OUTPUT
+
+      - name: OWASP ZAP — baseline scan (UAT)
+        if: steps.url.outputs.target != ''
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ steps.url.outputs.target }}
+          rules_file_name: .github/zap-rules.tsv
+          issue_title: 'OWASP ZAP — UAT ${{ github.ref_name }}'
+          fail_action: false
+          artifact_name: zap-report-uat-${{ github.ref_name }}
