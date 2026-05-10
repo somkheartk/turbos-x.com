@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "Smartstore POS API",
+    "description": "All endpoints for the Smartstore POS system.\n\nBase URL variable: set `baseUrl` to `http://localhost:3001/api` when calling pos-service directly, or `http://localhost:3000/api` to go through the Next.js proxy.\n\nSwagger UI: http://localhost:3001/api/docs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api",
+      "description": "Direct to pos-service. Use http://localhost:3000/api to go through Next.js proxy."
+    }
+  ],
+  "item": [
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pos/dashboard",
+            "description": "Returns today's revenue, transaction count, average basket, and top cashiers."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pos/products",
+            "description": "Returns all products with their categories list."
+          }
+        },
+        {
+          "name": "Create product",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/pos/products",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hydra Serum 30ml\",\n  \"sku\": \"SKU-001\",\n  \"category\": \"Serum\",\n  \"price\": 400,\n  \"stockOnHand\": 50\n}"
+            },
+            "description": "Creates a new product in the catalog. Publishes `pos.product.created` Kafka event."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List all transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pos/orders",
+            "description": "Returns all POS transactions with a summary (total completed, voided, revenue)."
+          }
+        },
+        {
+          "name": "Checkout — Cash",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/pos/orders",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productSku\": \"BEV-001\",\n      \"productName\": \"กาแฟดำ\",\n      \"qty\": 2,\n      \"unitPrice\": 45\n    }\n  ],\n  \"discount\": 0,\n  \"paymentMethod\": \"Cash\",\n  \"cashReceived\": 100,\n  \"cashierName\": \"Mint\"\n}"
+            },
+            "description": "Processes a checkout. Creates a transaction in MongoDB and publishes `pos.transaction.created`."
+          }
+        },
+        {
+          "name": "Checkout — QR",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/pos/orders",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productSku\": \"SNK-001\",\n      \"productName\": \"ขนมปังกรอบ\",\n      \"qty\": 1,\n      \"unitPrice\": 35\n    },\n    {\n      \"productSku\": \"BEV-002\",\n      \"productName\": \"ชาเขียว\",\n      \"qty\": 1,\n      \"unitPrice\": 50\n    }\n  ],\n  \"discount\": 0,\n  \"paymentMethod\": \"QR\",\n  \"cashierName\": \"Beam\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Checkout — Card with discount",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/pos/orders",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productSku\": \"FRS-001\",\n      \"productName\": \"ส้ม 1 กก.\",\n      \"qty\": 3,\n      \"unitPrice\": 80\n    }\n  ],\n  \"discount\": 20,\n  \"paymentMethod\": \"Card\",\n  \"cashierName\": \"Nida\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pos/users",
+            "description": "Returns all POS users (cashiers, managers, admins)."
+          }
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/pos/users",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ploy\",\n  \"role\": \"cashier\",\n  \"pin\": \"4567\",\n  \"shift\": \"08:00-17:00\"\n}"
+            },
+            "description": "Creates a new POS user. Status defaults to Active."
+          }
+        },
+        {
+          "name": "Deactivate user",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/pos/users/{{userId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Inactive\"\n}"
+            },
+            "description": "Update user status, role, or shift. Replace :id with the MongoDB _id string."
+          }
+        },
+        {
+          "name": "Change user role",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/pos/users/{{userId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"manager\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "7-day sales report",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pos/reports",
+            "description": "Returns 7-day revenue trend, top 5 products, revenue by shift (morning/evening/night), and cashier performance. Falls back to demo data when no real transactions exist."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "pos-service health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/pos/dashboard",
+            "description": "Non-empty response means pos-service is up."
+          }
+        },
+        {
+          "name": "pos-sales-service health",
+          "request": {
+            "method": "GET",
+            "url": "{{salesUrl}}/pos/health"
+          }
+        },
+        {
+          "name": "pos-catalog-service health",
+          "request": {
+            "method": "GET",
+            "url": "{{catalogUrl}}/catalog/health"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import { StockItem, StockItemSchema } from './schemas/stock-item.schema';
     ])
   ],
   controllers: [AdminController],
-  providers: [AdminService, AdminRepository]
+  providers: [AdminService, AdminRepository],
+  exports: [AdminService],
 })
 export class AdminModule {}

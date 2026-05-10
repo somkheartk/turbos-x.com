@@ -1,105 +1,113 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+type UserRole = 'admin' | 'manager' | 'cashier';
+type UserStatus = 'Active' | 'Inactive';
+type PaymentMethod = 'Cash' | 'QR' | 'Card';
+type ProductStatus = 'Active' | 'Draft' | 'Archived';
+type TxStatus = 'Completed' | 'Voided';
+
 export class PosUserDto {
-  id!: string;
-  name!: string;
-  role!: 'admin' | 'manager' | 'cashier';
-  status!: 'Active' | 'Inactive';
-  shift?: string;
+  @ApiProperty() id!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ enum: ['admin', 'manager', 'cashier'] }) role!: UserRole;
+  @ApiProperty({ enum: ['Active', 'Inactive'] }) status!: UserStatus;
+  @ApiPropertyOptional() shift?: string;
 }
 
 export class PosUsersResponseDto {
-  users!: PosUserDto[];
+  @ApiProperty({ type: [PosUserDto] }) users!: PosUserDto[];
 }
 
 export class CreatePosUserDto {
-  name!: string;
-  role!: 'admin' | 'manager' | 'cashier';
-  pin!: string;
-  shift?: string;
+  @ApiProperty({ example: 'Mint' }) name!: string;
+  @ApiProperty({ enum: ['admin', 'manager', 'cashier'], example: 'cashier' }) role!: UserRole;
+  @ApiProperty({ example: '1234' }) pin!: string;
+  @ApiPropertyOptional({ example: '08:00-17:00' }) shift?: string;
 }
 
 export class UpdatePosUserDto {
-  status?: 'Active' | 'Inactive';
-  role?: 'admin' | 'manager' | 'cashier';
-  shift?: string;
+  @ApiPropertyOptional({ enum: ['Active', 'Inactive'] }) status?: UserStatus;
+  @ApiPropertyOptional({ enum: ['admin', 'manager', 'cashier'] }) role?: UserRole;
+  @ApiPropertyOptional({ example: '08:00-17:00' }) shift?: string;
 }
 
 export class TransactionItemDto {
-  productSku!: string;
-  productName!: string;
-  qty!: number;
-  unitPrice!: number;
-  unitPriceLabel!: string;
-  lineTotal!: number;
-  lineTotalLabel!: string;
+  @ApiProperty() productSku!: string;
+  @ApiProperty() productName!: string;
+  @ApiProperty() qty!: number;
+  @ApiProperty() unitPrice!: number;
+  @ApiProperty() unitPriceLabel!: string;
+  @ApiProperty() lineTotal!: number;
+  @ApiProperty() lineTotalLabel!: string;
 }
 
 export class PosTransactionDto {
-  transactionId!: string;
-  items!: TransactionItemDto[];
-  subtotal!: number;
-  subtotalLabel!: string;
-  discount!: number;
-  total!: number;
-  totalLabel!: string;
-  paymentMethod!: 'Cash' | 'QR' | 'Card';
-  cashReceived!: number;
-  changeAmount!: number;
-  changeAmountLabel!: string;
-  cashierName!: string;
-  status!: 'Completed' | 'Voided';
-  createdAtLabel!: string;
+  @ApiProperty() transactionId!: string;
+  @ApiProperty({ type: [TransactionItemDto] }) items!: TransactionItemDto[];
+  @ApiProperty() subtotal!: number;
+  @ApiProperty() subtotalLabel!: string;
+  @ApiProperty() discount!: number;
+  @ApiProperty() total!: number;
+  @ApiProperty() totalLabel!: string;
+  @ApiProperty({ enum: ['Cash', 'QR', 'Card'] }) paymentMethod!: PaymentMethod;
+  @ApiProperty() cashReceived!: number;
+  @ApiProperty() changeAmount!: number;
+  @ApiProperty() changeAmountLabel!: string;
+  @ApiProperty() cashierName!: string;
+  @ApiProperty({ enum: ['Completed', 'Voided'] }) status!: TxStatus;
+  @ApiProperty() createdAtLabel!: string;
 }
 
 export class CheckoutItemDto {
-  productSku!: string;
-  productName!: string;
-  qty!: number;
-  unitPrice!: number;
+  @ApiProperty({ example: 'BEV-001' }) productSku!: string;
+  @ApiProperty({ example: 'กาแฟดำ' }) productName!: string;
+  @ApiProperty({ example: 2 }) qty!: number;
+  @ApiProperty({ example: 45 }) unitPrice!: number;
 }
 
 export class CheckoutDto {
-  items!: CheckoutItemDto[];
-  discount?: number;
-  paymentMethod!: 'Cash' | 'QR' | 'Card';
-  cashReceived?: number;
-  cashierName!: string;
+  @ApiProperty({ type: [CheckoutItemDto] }) items!: CheckoutItemDto[];
+  @ApiPropertyOptional({ example: 0 }) discount?: number;
+  @ApiProperty({ enum: ['Cash', 'QR', 'Card'], example: 'Cash' }) paymentMethod!: PaymentMethod;
+  @ApiPropertyOptional({ example: 100 }) cashReceived?: number;
+  @ApiProperty({ example: 'Mint' }) cashierName!: string;
 }
 
 export class PosOrdersResponseDto {
-  summary!: Array<{ label: string; value: string }>;
-  transactions!: PosTransactionDto[];
+  @ApiProperty() summary!: Array<{ label: string; value: string }>;
+  @ApiProperty({ type: [PosTransactionDto] }) transactions!: PosTransactionDto[];
 }
 
 export class CheckoutResponseDto {
-  transaction!: PosTransactionDto;
-  message!: string;
+  @ApiProperty({ type: PosTransactionDto }) transaction!: PosTransactionDto;
+  @ApiProperty() message!: string;
 }
 
 export class PosDashboardResponseDto {
-  kpis!: Array<{ label: string; value: string; detail?: string }>;
-  topCashiers!: Array<{ rank: number; name: string; transactions: number; totalLabel: string }>;
-  onlineCounters!: number;
+  @ApiProperty() kpis!: Array<{ label: string; value: string; detail?: string }>;
+  @ApiProperty() topCashiers!: Array<{ rank: number; name: string; transactions: number; totalLabel: string }>;
+  @ApiProperty() onlineCounters!: number;
 }
 
 export class CreatePosProductDto {
-  name!: string;
-  sku!: string;
-  category!: string;
-  price!: number;
-  stockOnHand!: number;
+  @ApiProperty({ example: 'Hydra Serum 30ml' }) name!: string;
+  @ApiProperty({ example: 'SKU-001' }) sku!: string;
+  @ApiProperty({ example: 'Serum' }) category!: string;
+  @ApiProperty({ example: 400 }) price!: number;
+  @ApiProperty({ example: 50 }) stockOnHand!: number;
 }
 
 export class PosProductDto {
-  sku!: string;
-  name!: string;
-  category!: string;
-  price!: number;
-  priceLabel!: string;
-  stockOnHand!: number;
-  status!: 'Active' | 'Draft' | 'Archived';
+  @ApiProperty() sku!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() category!: string;
+  @ApiProperty() price!: number;
+  @ApiProperty() priceLabel!: string;
+  @ApiProperty() stockOnHand!: number;
+  @ApiProperty({ enum: ['Active', 'Draft', 'Archived'] }) status!: ProductStatus;
 }
 
 export class PosProductsResponseDto {
-  products!: PosProductDto[];
-  categories!: string[];
+  @ApiProperty({ type: [PosProductDto] }) products!: PosProductDto[];
+  @ApiProperty({ type: [String] }) categories!: string[];
 }

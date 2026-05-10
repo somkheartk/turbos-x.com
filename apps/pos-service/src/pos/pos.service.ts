@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AdminService } from '../admin/admin.service';
 import {
   CheckoutDto,
   CheckoutResponseDto,
@@ -13,6 +14,7 @@ import {
 
 @Injectable()
 export class PosService {
+  constructor(private readonly adminService: AdminService) {}
   private get catalogUrl(): string {
     return process.env.CATALOG_SERVICE_URL ?? 'http://localhost:3003/api';
   }
@@ -117,6 +119,10 @@ export class PosService {
 
   async updateUser(id: string, dto: UpdatePosUserDto) {
     return this.patch(`${this.salesUrl}/pos/users/${id}`, dto);
+  }
+
+  async getReports() {
+    return this.adminService.getReports();
   }
 
   private formatCurrency(value: number) {

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://pos-api.uat.turbos-x.com/api/admin/overview)",
+      "Bash(curl -s https://pos-api.uat.turbos-x.com/api/health)"
+    ]
+  }
+}
