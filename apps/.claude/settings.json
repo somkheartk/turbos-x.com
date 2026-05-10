@@ -31,7 +31,14 @@
       "Bash(rm -rf /Users/somkheart/development/smartstore/turbos-x/apps/pos-web/.git)",
       "Bash(git rm *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(cat /tmp/gcp-sa-key.json)",
+      "Read(//private/tmp/**)",
+      "Bash(gh run *)",
+      "Bash(gh auth *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('scripts', {}\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\('dependencies', {}\\).keys\\(\\)\\)\\)\")",
+      "Bash(git push *)"
     ]
   }
 }
