@@ -43,6 +43,7 @@ function toTransactionDto(t: any) {
     changeAmountLabel: formatCurrency(t.changeAmount),
     cashierName: t.cashierName,
     status: t.status,
+    createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString(),
     createdAtLabel: formatDateLabel(new Date(t.createdAt ?? Date.now())),
   };
 }

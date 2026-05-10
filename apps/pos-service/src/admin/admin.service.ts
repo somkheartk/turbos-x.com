@@ -269,102 +269,127 @@ export class AdminService implements OnModuleInit {
   }
 
   async getReports(): Promise<ReportsResponseDto> {
-    const [orders, stockItems] = await Promise.all([
-      this.adminRepository.getSalesOrders(),
-      this.adminRepository.getStockItems()
-    ]);
+    const salesUrl = process.env.SALES_SERVICE_URL ?? 'http://localhost:3002/api';
+    const stockItems = await this.adminRepository.getStockItems();
 
-    const completed = orders.filter((o) => o.status === 'Completed');
-    const totalRevenue = completed.reduce((s, o) => s + o.totalAmount, 0);
-    const totalTx = completed.length;
-    const avgBasket = totalTx > 0 ? totalRevenue / totalTx : 0;
+    let transactions: Array<{
+      transactionId: string;
+      items: Array<{ productSku: string; productName: string; qty: number; lineTotal: number }>;
+      total: number;
+      cashierName: string;
+      status: string;
+      createdAt: string;
+    }> = [];
+
+    try {
+      const res = await fetch(`${salesUrl}/pos/orders`, { cache: 'no-store' });
+      if (res.ok) {
+        const body = await res.json() as { transactions?: typeof transactions };
+        transactions = (body.transactions ?? []).filter((t) => t.status === 'Completed');
+      }
+    } catch { /* fall through to demo */ }
 
     const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const recent = transactions.filter((t) => new Date(t.createdAt) >= sevenDaysAgo);
+    const totalRevenue = recent.reduce((s, t) => s + t.total, 0);
+    const totalTx = recent.length;
+    const avgBasket = totalTx > 0 ? totalRevenue / totalTx : 0;
+
     const days = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
     const dailySales = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(now);
       d.setDate(now.getDate() - (6 - i));
-      const dayOrders = completed.filter((o) => {
-        const od = new Date(o.placedAt);
-        return od.getDate() === d.getDate() && od.getMonth() === d.getMonth();
+      const dayTx = recent.filter((t) => {
+        const td = new Date(t.createdAt);
+        return td.getDate() === d.getDate() && td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear();
       });
-      const rev = dayOrders.reduce((s, o) => s + o.totalAmount, 0);
       const seed = (d.getDate() * 7919 + d.getMonth() * 3571) % 10;
-      const baseRev = rev > 0 ? rev : 25000 + seed * 8000;
       return {
         day: days[d.getDay()],
-        revenue: baseRev,
-        transactions: dayOrders.length > 0 ? dayOrders.length : 4 + seed
+        revenue: dayTx.length > 0 ? dayTx.reduce((s, t) => s + t.total, 0) : 25000 + seed * 8000,
+        transactions: dayTx.length > 0 ? dayTx.length : 4 + seed
       };
     });
 
     const productMap = new Map<string, { name: string; sold: number; revenue: number }>();
-    for (const order of completed) {
-      const item = stockItems[Math.abs(order.orderNumber.charCodeAt(5) ?? 0) % stockItems.length];
-      if (!item) continue;
-      const key = item.sku;
-      const existing = productMap.get(key);
-      if (existing) {
-        existing.sold += order.itemCount;
-        existing.revenue += order.totalAmount;
-      } else {
-        productMap.set(key, { name: item.product, sold: order.itemCount, revenue: order.totalAmount });
+    for (const tx of recent) {
+      for (const item of tx.items) {
+        const key = item.productSku;
+        const existing = productMap.get(key);
+        if (existing) {
+          existing.sold += item.qty;
+          existing.revenue += item.lineTotal;
+        } else {
+          productMap.set(key, { name: item.productName, sold: item.qty, revenue: item.lineTotal });
+        }
       }
     }
 
     const DEMO_PRODUCTS = [
-      { sku: 'CAT-001', name: 'กาแฟลาเต้ (Hot)', sold: 142, revenue: 56800 },
-      { sku: 'CAT-002', name: 'อเมริกาโน่', sold: 98, revenue: 29400 },
-      { sku: 'CAT-003', name: 'ชาไทย (Cold)', sold: 87, revenue: 21750 },
-      { sku: 'CAT-004', name: 'มัทฉะลาเต้', sold: 63, revenue: 25200 },
-      { sku: 'CAT-005', name: 'โกโก้', sold: 51, revenue: 15300 }
+      { sku: 'SKU-001', name: 'Hydra Serum 30ml', sold: 142, revenue: 56800 },
+      { sku: 'SKU-014', name: 'Sun Shield SPF50', sold: 98, revenue: 29400 },
+      { sku: 'SKU-031', name: 'Night Repair Mask', sold: 87, revenue: 21750 },
+      { sku: 'SKU-105', name: 'Cloud Cleanser', sold: 63, revenue: 15300 },
+      { sku: 'SKU-200', name: 'Vitamin C Booster', sold: 51, revenue: 25200 }
     ];
 
     const topBase = productMap.size >= 3
-      ? [...productMap.entries()]
-          .map(([sku, v]) => ({ sku, ...v }))
-          .sort((a, b) => b.revenue - a.revenue)
-          .slice(0, 5)
+      ? [...productMap.entries()].map(([sku, v]) => ({ sku, ...v })).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
       : DEMO_PRODUCTS;
 
     const topProducts = topBase.map((p, i) => ({
-      rank: i + 1,
-      name: p.name,
-      sku: p.sku,
-      sold: p.sold,
-      revenue: p.revenue,
+      rank: i + 1, name: p.name, sku: p.sku, sold: p.sold, revenue: p.revenue,
       revenueLabel: this.formatCurrency(p.revenue)
     }));
 
-    const shiftData = [
-      { shift: 'Morning', revenue: Math.round(totalRevenue * 0.48) || 68400, transactions: Math.round(totalTx * 0.48) || 42 },
-      { shift: 'Evening', revenue: Math.round(totalRevenue * 0.35) || 49800, transactions: Math.round(totalTx * 0.35) || 31 },
-      { shift: 'Night',   revenue: Math.round(totalRevenue * 0.17) || 24200, transactions: Math.round(totalTx * 0.17) || 15 }
-    ];
-    const shiftTotal = shiftData.reduce((s, sh) => s + sh.revenue, 0);
-    const byShift = shiftData.map((sh) => ({
-      ...sh,
-      revenueLabel: this.formatCurrency(sh.revenue),
-      percent: shiftTotal > 0 ? Math.round((sh.revenue / shiftTotal) * 100) : 0
-    }));
+    const cashierMap = new Map<string, { transactions: number; revenue: number }>();
+    for (const tx of recent) {
+      const existing = cashierMap.get(tx.cashierName);
+      if (existing) { existing.transactions++; existing.revenue += tx.total; }
+      else { cashierMap.set(tx.cashierName, { transactions: 1, revenue: tx.total }); }
+    }
 
-    const DEMO_CASHIERS = [
-      { name: 'สมชาย', transactions: 38, revenue: 47500, avgBasket: this.formatCurrency(1250) },
-      { name: 'มาลี',   transactions: 29, revenue: 36250, avgBasket: this.formatCurrency(1250) },
-      { name: 'วิชัย',  transactions: 21, revenue: 26250, avgBasket: this.formatCurrency(1250) }
-    ];
+    const byCashier = cashierMap.size > 0
+      ? [...cashierMap.entries()]
+          .map(([name, v]) => ({
+            name, transactions: v.transactions, revenue: v.revenue,
+            revenueLabel: this.formatCurrency(v.revenue),
+            avgBasket: this.formatCurrency(v.transactions > 0 ? Math.round(v.revenue / v.transactions) : 0)
+          }))
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5)
+      : [
+          { name: 'สมชาย', transactions: 38, revenue: 47500, revenueLabel: this.formatCurrency(47500), avgBasket: this.formatCurrency(1250) },
+          { name: 'มาลี',   transactions: 29, revenue: 36250, revenueLabel: this.formatCurrency(36250), avgBasket: this.formatCurrency(1250) },
+          { name: 'วิชัย',  transactions: 21, revenue: 26250, revenueLabel: this.formatCurrency(26250), avgBasket: this.formatCurrency(1250) }
+        ];
 
-    const byCashier = DEMO_CASHIERS.map((c) => ({
-      ...c,
-      revenueLabel: this.formatCurrency(c.revenue)
-    }));
+    const shiftBuckets = { Morning: { revenue: 0, transactions: 0 }, Evening: { revenue: 0, transactions: 0 }, Night: { revenue: 0, transactions: 0 } };
+    for (const tx of recent) {
+      const h = new Date(tx.createdAt).getHours();
+      const shift = h >= 6 && h < 14 ? 'Morning' : h >= 14 && h < 22 ? 'Evening' : 'Night';
+      shiftBuckets[shift].revenue += tx.total;
+      shiftBuckets[shift].transactions++;
+    }
+    const shiftTotal = Object.values(shiftBuckets).reduce((s, b) => s + b.revenue, 0);
+    const byShift = (['Morning', 'Evening', 'Night'] as const).map((shift) => {
+      const b = shiftBuckets[shift];
+      const rev = b.revenue || (shift === 'Morning' ? 68400 : shift === 'Evening' ? 49800 : 24200);
+      const txn = b.transactions || (shift === 'Morning' ? 42 : shift === 'Evening' ? 31 : 15);
+      const total = shiftTotal || (68400 + 49800 + 24200);
+      return { shift, revenue: rev, revenueLabel: this.formatCurrency(rev), transactions: txn, percent: Math.round((rev / total) * 100) };
+    });
 
     const periodStart = new Date(now);
     periodStart.setDate(now.getDate() - 6);
-    const periodLabel = `${new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(periodStart)} – ${new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(now)}`;
+    const fmt = (d: Date) => new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(d);
 
     return {
-      period: `ข้อมูล 7 วันล่าสุด · ${periodLabel}`,
+      period: `ข้อมูล 7 วันล่าสุด · ${fmt(periodStart)} – ${fmt(now)}`,
       summary: [
         { label: 'ยอดขายรวม', value: this.formatCurrency(totalRevenue || 142400), change: '12.4% vs สัปดาห์ก่อน', up: true },
         { label: 'รายการทั้งหมด', value: String(totalTx || 88), change: '8.1% vs สัปดาห์ก่อน', up: true },
